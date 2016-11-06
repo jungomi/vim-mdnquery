@@ -4,3 +4,4 @@ endif
 let g:loaded_mdnquery = 1
 
 command! -nargs=* MdnQuery call mdnquery#search(<f-args>)
+command! -nargs=0 MdnQueryToggle call mdnquery#toggle()
