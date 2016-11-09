@@ -17,8 +17,10 @@ function! mdnquery#search(...) abort
     begin
       query = VIM.evaluate('query')
       list = MdnQuery.list(query)
+      VIM.command('let s:pane.list = []')
       list.each.with_index do |entry, index|
         VIM.evaluate("add(lines, '#{index + 1}) #{entry.title}')")
+        VIM.evaluate("add(s:pane.list, '#{entry.url}')")
       end
       VIM.evaluate('s:pane.SetContent(lines)')
     rescue MdnQuery::NoEntryFound
@@ -38,7 +40,6 @@ function! mdnquery#firstMatch(...) abort
     begin
       query = VIM.evaluate('query')
       match = MdnQuery.first_match(query)
-      escaped = match.to_md.gsub('"', '\"')
       match.to_md.each_line do |line|
         escaped = line.gsub('"', '\"').chomp
         VIM.evaluate("add(lines, \"#{escaped}\")")
@@ -62,8 +63,43 @@ function! mdnquery#toggle() abort
   endif
 endfunction
 
+function! mdnquery#openUnderCursor() abort
+  if !s:pane.IsFocused()
+    call s:errorMsg('Must be inside a MdnQuery buffer')
+    return
+  endif
+  let line = getline('.')
+  let match = matchlist(line, '^\(\d\+\))')
+  if empty(match)
+    call s:errorMsg('Not a valid entry')
+    return
+  endif
+  let index = match[1] - 1
+  call s:DocumentFromUrl(s:pane.list[index])
+endfunction
+
+function! s:DocumentFromUrl(url) abort
+  let lines = []
+  ruby << EOF
+    begin
+      url = VIM.evaluate('a:url')
+      document = MdnQuery::Document.from_url(url)
+      document.to_md.each_line do |line|
+        escaped = line.gsub('"', '\"').chomp
+        VIM.evaluate("add(lines, \"#{escaped}\")")
+      end
+      VIM.evaluate("s:pane.SetContent(lines)")
+    rescue MdnQuery::HttpRequestFailed
+      VIM.evaluate("s:errorMsg('Network error')")
+    end
+EOF
+endfunction
+
 " Pane
-let s:pane = {'bufname': 'mdnquery_result_window'}
+let s:pane = {
+      \ 'bufname': 'mdnquery_result_window',
+      \ 'list': []
+      \ }
 
 function! s:pane.Create() abort
   if s:pane.Exists()
@@ -77,6 +113,7 @@ function! s:pane.Create() abort
   setlocal nobuflisted
   setlocal nomodifiable
   setlocal nospell
+  nnoremap <buffer> <silent> <CR> :call mdnquery#openUnderCursor()<CR>
   if prevwin != winnr()
     execute prevwin . 'wincmd w'
   endif
@@ -99,6 +136,10 @@ function! s:pane.IsVisible() abort
   else
     return 1
   endif
+endfunction
+
+function! s:pane.IsFocused() abort
+  return bufwinnr(self.bufname) == winnr()
 endfunction
 
 function! s:pane.SetFocus() abort
@@ -138,10 +179,10 @@ function! s:pane.SetContent(lines) abort
   call s:pane.SetFocus()
   setlocal modifiable
   " Delete content into blackhole register
-  %d_
+  silent %d_
   call append(0, a:lines)
   " Delete empty line at the end
-  $d_
+  silent $d_
   call cursor(1, 1)
   setlocal nomodifiable
   if prevwin != winnr()
