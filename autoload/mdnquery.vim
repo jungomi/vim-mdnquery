@@ -63,6 +63,20 @@ function! mdnquery#toggle() abort
   endif
 endfunction
 
+function! mdnquery#show() abort
+  if s:pane.IsVisible()
+    return
+  endif
+  call mdnquery#toggle()
+endfunction
+
+function! mdnquery#hide() abort
+  if !s:pane.IsVisible()
+    return
+  endif
+  call mdnquery#toggle()
+endfunctio
+
 function! mdnquery#openUnderCursor() abort
   if !s:pane.IsFocused()
     call s:errorMsg('Must be inside a MdnQuery buffer')
