@@ -27,6 +27,29 @@ function! mdnquery#search(...) abort
 EOF
 endfunction
 
+function! mdnquery#firstMatch(...) abort
+  if empty(a:000)
+    call s:errorMsg('Missing search term')
+    return
+  endif
+  let query = join(a:000)
+  let lines = []
+  ruby << EOF
+    begin
+      query = VIM.evaluate('query')
+      match = MdnQuery.first_match(query)
+      escaped = match.to_md.gsub('"', '\"')
+      match.to_md.each_line do |line|
+        escaped = line.gsub('"', '\"').chomp
+        VIM.evaluate("add(lines, \"#{escaped}\")")
+      end
+      VIM.evaluate("s:pane.SetContent(lines)")
+    rescue MdnQuery::NoEntryFound
+      VIM.evaluate("s:errorMsg('No results for #{query}')")
+    end
+EOF
+endfunction
+
 function! mdnquery#toggle() abort
   if !s:pane.Exists()
     call s:errorMsg('Nothing to display')
