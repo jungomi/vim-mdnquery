@@ -122,7 +122,7 @@ let s:pane = {
       \ }
 
 function! s:pane.Create() abort
-  if s:pane.Exists()
+  if self.Exists()
     return
   endif
   let prevwin = winnr()
@@ -202,12 +202,12 @@ endfunction
 
 function! s:pane.SetContent(lines) abort
   let prevwin = winnr()
-  if s:pane.Exists()
-    call s:pane.Show()
+  if self.Exists()
+    call self.Show()
   else
-    call s:pane.Create()
+    call self.Create()
   endif
-  call s:pane.SetFocus()
+  call self.SetFocus()
   setlocal modifiable
   " Delete content into blackhole register
   silent %d_
