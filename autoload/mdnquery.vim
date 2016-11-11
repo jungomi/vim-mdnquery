@@ -6,6 +6,11 @@ function! s:errorMsg(msg) abort
   echohl None
 endfunction
 
+function! s:throw(msg) abort
+  let v:errmsg = 'MdnQuery: ' . a:msg
+  throw v:errmsg
+endfunction
+
 function! mdnquery#search(...) abort
   if empty(a:000)
     call s:errorMsg('Missing search term')
@@ -94,7 +99,16 @@ function! mdnquery#openUnderCursor() abort
     return
   endif
   let index = match[1] - 1
-  call s:DocumentFromUrl(s:pane.list[index].url)
+  let item = s:pane.list[index]
+  if !exists('item.content')
+    try
+      let item.content = s:DocumentFromUrl(item.url)
+    catch /MdnQuery:/
+      call s:errorMsg(v:errmsg)
+      return
+    endtry
+  endif
+  call s:pane.SetContent(item.content)
 endfunction
 
 function! s:DocumentFromUrl(url) abort
@@ -107,11 +121,11 @@ function! s:DocumentFromUrl(url) abort
         escaped = line.gsub('"', '\"').chomp
         VIM.evaluate("add(lines, \"#{escaped}\")")
       end
-      VIM.evaluate("s:pane.SetContent(lines)")
     rescue MdnQuery::HttpRequestFailed
-      VIM.evaluate("s:errorMsg('Network error')")
+      VIM.evaluate("s:throw('Network error')")
     end
 EOF
+  return lines
 endfunction
 
 " Pane
