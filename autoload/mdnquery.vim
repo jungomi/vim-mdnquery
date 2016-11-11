@@ -84,12 +84,21 @@ function! mdnquery#hide() abort
 endfunction
 
 function! mdnquery#showList() abort
+  if s:pane.contentType == 'list'
+    if !s:pane.IsVisible()
+      s:pane.Show()
+    endif
+    return
+  endif
   call s:pane.ShowList()
 endfunction
 
 function! mdnquery#openUnderCursor() abort
   if !s:pane.IsFocused()
     call s:errorMsg('Must be inside a MdnQuery buffer')
+    return
+  endif
+  if s:pane.contentType == 'entry'
     return
   endif
   let line = getline('.')
@@ -109,6 +118,7 @@ function! mdnquery#openUnderCursor() abort
     endtry
   endif
   call s:pane.SetContent(item.content)
+  let s:pane.contentType = 'entry'
 endfunction
 
 function! s:DocumentFromUrl(url) abort
@@ -132,7 +142,8 @@ endfunction
 let s:pane = {
       \ 'bufname': 'mdnquery_result_window',
       \ 'list': [],
-      \ 'query': ''
+      \ 'query': '',
+      \ 'contentType': 'none'
       \ }
 
 function! s:pane.Create() abort
@@ -148,6 +159,8 @@ function! s:pane.Create() abort
   setlocal nomodifiable
   setlocal nospell
   nnoremap <buffer> <silent> <CR> :call mdnquery#openUnderCursor()<CR>
+  nnoremap <buffer> <silent> o :call mdnquery#openUnderCursor()<CR>
+  nnoremap <buffer> <silent> r :call mdnquery#showList()<CR>
   if prevwin != winnr()
     execute prevwin . 'wincmd w'
   endif
@@ -212,6 +225,7 @@ function! s:pane.ShowList() abort
   let lines = map(copy(self.list), "v:val.id . ') ' . v:val.title")
   call insert(lines, title)
   call self.SetContent(lines)
+  let self.contentType = 'list'
 endfunction
 
 function! s:pane.SetContent(lines) abort
