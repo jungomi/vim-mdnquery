@@ -12,17 +12,18 @@ function! mdnquery#search(...) abort
     return
   endif
   let query = join(a:000)
-  let lines = ['Search results for ' . query]
+  let s:pane.query = query
+  let s:pane.list = []
   ruby << EOF
     begin
       query = VIM.evaluate('query')
       list = MdnQuery.list(query)
-      VIM.command('let s:pane.list = []')
-      list.each.with_index do |entry, index|
-        VIM.evaluate("add(lines, '#{index + 1}) #{entry.title}')")
-        VIM.evaluate("add(s:pane.list, '#{entry.url}')")
+      list.each do |e|
+        id = VIM.evaluate('len(s:pane.list)') + 1
+        item = "{ 'id': #{id}, 'title': '#{e.title}', 'url': '#{e.url}' }"
+        VIM.evaluate("add(s:pane.list, #{item})")
       end
-      VIM.evaluate('s:pane.SetContent(lines)')
+      VIM.evaluate('s:pane.ShowList()')
     rescue MdnQuery::NoEntryFound
       VIM.evaluate("s:errorMsg('No results for #{query}')")
     end
@@ -75,7 +76,11 @@ function! mdnquery#hide() abort
     return
   endif
   call mdnquery#toggle()
-endfunctio
+endfunction
+
+function! mdnquery#showList() abort
+  call s:pane.ShowList()
+endfunction
 
 function! mdnquery#openUnderCursor() abort
   if !s:pane.IsFocused()
@@ -89,7 +94,7 @@ function! mdnquery#openUnderCursor() abort
     return
   endif
   let index = match[1] - 1
-  call s:DocumentFromUrl(s:pane.list[index])
+  call s:DocumentFromUrl(s:pane.list[index].url)
 endfunction
 
 function! s:DocumentFromUrl(url) abort
@@ -112,7 +117,8 @@ endfunction
 " Pane
 let s:pane = {
       \ 'bufname': 'mdnquery_result_window',
-      \ 'list': []
+      \ 'list': [],
+      \ 'query': ''
       \ }
 
 function! s:pane.Create() abort
@@ -181,6 +187,17 @@ function! s:pane.Hide() abort
   endif
   call self.SetFocus()
   quit
+endfunction
+
+function! s:pane.ShowList() abort
+  if empty(self.list)
+    call s:errorMsg('No list available')
+    return
+  endif
+  let title = 'Search results for ' . self.query
+  let lines = map(copy(self.list), "v:val.id . ') ' . v:val.title")
+  call insert(lines, title)
+  call self.SetContent(lines)
 endfunction
 
 function! s:pane.SetContent(lines) abort
