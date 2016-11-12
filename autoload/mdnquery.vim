@@ -19,20 +19,11 @@ function! mdnquery#search(...) abort
   let query = join(a:000)
   let s:pane.query = query
   let s:pane.list = []
-  ruby << EOF
-    begin
-      query = VIM.evaluate('query')
-      list = MdnQuery.list(query)
-      list.each do |e|
-        id = VIM.evaluate('len(s:pane.list)') + 1
-        item = "{ 'id': #{id}, 'title': '#{e.title}', 'url': '#{e.url}' }"
-        VIM.evaluate("add(s:pane.list, #{item})")
-      end
-      VIM.evaluate('s:pane.ShowList()')
-    rescue MdnQuery::NoEntryFound
-      VIM.evaluate("s:errorMsg('No results for #{query}')")
-    end
-EOF
+  if has('nvim')
+    call s:asyncSearch(query)
+  else
+    call s:syncSearch(query)
+  endif
 endfunction
 
 function! mdnquery#firstMatch(...) abort
@@ -247,4 +238,67 @@ function! s:pane.SetContent(lines) abort
   if prevwin != winnr()
     execute prevwin . 'wincmd w'
   endif
+endfunction
+
+" Async jobs
+function! s:jobStart(cmd) abort
+  let callbacks = {
+        \ 'on_stdout': function('s:addEntries'),
+        \ 'on_stderr': function('s:handleError'),
+        \ 'on_exit': function('s:finishJobList')
+        \ }
+  let jobId = jobstart(a:cmd, callbacks)
+
+  return jobId
+endfunction
+
+function! s:addEntries(id, data, event) abort
+  " Remove last empty line
+  call remove(a:data, -1)
+  for entry in a:data
+    call add(s:pane.list, eval(entry))
+  endfor
+endfunction
+
+function! s:handleError(id, data, event) abort
+  call s:errorMsg(join(a:data))
+endfunction
+
+function! s:finishJobList(id, data, event) abort
+  call s:pane.ShowList()
+endfunction
+
+function! s:syncSearch(query) abort
+  ruby << EOF
+    begin
+      query = VIM.evaluate('a:query')
+      list = MdnQuery.list(query)
+      list.each do |e|
+        id = VIM.evaluate('len(s:pane.list)') + 1
+        item = "{ 'id': #{id}, 'title': '#{e.title}', 'url': '#{e.url}' }"
+        VIM.evaluate("add(s:pane.list, #{item})")
+      end
+      VIM.evaluate('s:pane.ShowList()')
+    rescue MdnQuery::NoEntryFound
+      VIM.evaluate("s:errorMsg('No results for #{query}')")
+    end
+EOF
+endfunction
+
+function! s:asyncSearch(query) abort
+  let index = len(s:pane.list)
+  let script = "begin;"
+    \ . "  list = MdnQuery.list('" . a:query . "');"
+    \ . "  i = " . index . ";"
+    \ . "  entries =  list.items.map do |e|;"
+    \ . "    i += 1;"
+    \ . "    \"{ 'id': #{i}, 'title': '#{e.title}', 'url': '#{e.url}' }\""
+    \ . "  end;"
+    \ . "  puts entries;"
+    \ . "rescue MdnQuery::NoEntryFound;"
+    \ . "  STDERR.puts 'No results for " . a:query . "';"
+    \ . "end"
+  let cmd = ['ruby', '-e', 'require "mdn_query"', '-e', script]
+
+  return s:jobStart(cmd)
 endfunction
