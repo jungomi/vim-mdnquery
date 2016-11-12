@@ -32,20 +32,13 @@ function! mdnquery#firstMatch(...) abort
     return
   endif
   let query = join(a:000)
-  let lines = []
-  ruby << EOF
-    begin
-      query = VIM.evaluate('query')
-      match = MdnQuery.first_match(query)
-      match.to_md.each_line do |line|
-        escaped = line.gsub('"', '\"').chomp
-        VIM.evaluate("add(lines, \"#{escaped}\")")
-      end
-      VIM.evaluate("s:pane.SetContent(lines)")
-    rescue MdnQuery::NoEntryFound
-      VIM.evaluate("s:errorMsg('No results for #{query}')")
-    end
-EOF
+  let s:pane.query = query
+  let s:pane.firstMatch = []
+  if has('nvim')
+    call s:asyncFirstMatch(query)
+  else
+    call s:syncFirstMatch(query)
+  endif
 endfunction
 
 function! mdnquery#toggle() abort
@@ -134,7 +127,8 @@ let s:pane = {
       \ 'bufname': 'mdnquery_result_window',
       \ 'list': [],
       \ 'query': '',
-      \ 'contentType': 'none'
+      \ 'contentType': 'none',
+      \ 'firstMatch': []
       \ }
 
 function! s:pane.Create() abort
@@ -214,6 +208,16 @@ function! s:pane.ShowList() abort
   let self.contentType = 'list'
 endfunction
 
+function! s:pane.ShowFirstMatch() abort
+  if empty(self.firstMatch)
+    let content = ['No result for ' . self.query]
+  else
+    let content = self.firstMatch
+  endif
+  call self.SetContent(content)
+  let self.contentType = 'firstMatch'
+endfunction
+
 function! s:pane.SetContent(lines) abort
   let prevwin = winnr()
   if self.Exists()
@@ -246,13 +250,9 @@ function! s:pane.Title() abort
 endfunction
 
 " Async jobs
-function! s:jobStart(cmd) abort
-  let callbacks = {
-        \ 'on_stdout': function('s:addEntries'),
-        \ 'on_stderr': function('s:handleError'),
-        \ 'on_exit': function('s:finishJobList')
-        \ }
-  let jobId = jobstart(a:cmd, callbacks)
+function! s:jobStart(script, callbacks) abort
+  let cmd = ['ruby', '-e', 'require "mdn_query"', '-e', a:script]
+  let jobId = jobstart(cmd, a:callbacks)
 
   return jobId
 endfunction
@@ -265,8 +265,16 @@ function! s:addEntries(id, data, event) abort
   endfor
 endfunction
 
+function! s:handleFirstMatch(id, data, event) abort
+  call extend(s:pane.firstMatch, a:data)
+endfunction
+
 function! s:handleError(id, data, event) abort
   call s:errorMsg(join(a:data))
+endfunction
+
+function! s:finishJobEntry(id, data, event) abort
+  call s:pane.ShowFirstMatch()
 endfunction
 
 function! s:finishJobList(id, data, event) abort
@@ -304,7 +312,45 @@ function! s:asyncSearch(query) abort
     \ . "rescue MdnQuery::NoEntryFound;"
     \ . "  STDERR.puts 'No results for " . a:query . "';"
     \ . "end"
-  let cmd = ['ruby', '-e', 'require "mdn_query"', '-e', script]
+  let callbacks = {
+        \ 'on_stdout': function('s:addEntries'),
+        \ 'on_stderr': function('s:handleError'),
+        \ 'on_exit': function('s:finishJobList')
+        \ }
 
-  return s:jobStart(cmd)
+  return s:jobStart(script, callbacks)
+endfunction
+
+function! s:syncFirstMatch(query) abort
+  let lines = []
+  ruby << EOF
+    begin
+      query = VIM.evaluate('a:query')
+      match = MdnQuery.first_match(query)
+      match.to_md.each_line do |line|
+        escaped = line.gsub('"', '\"').chomp
+        VIM.evaluate("add(s:pane.firstMatch, \"#{escaped}\")")
+      end
+    rescue MdnQuery::NoEntryFound
+      VIM.evaluate("s:errorMsg('No results for #{query}')")
+    ensure
+      VIM.evaluate("s:pane.ShowFirstMatch()")
+    end
+EOF
+endfunction
+
+function! s:asyncFirstMatch(query) abort
+  let callbacks = {
+        \ 'on_stdout': function('s:handleFirstMatch'),
+        \ 'on_stderr': function('s:handleError'),
+        \ 'on_exit': function('s:finishJobEntry')
+        \ }
+  let script = "begin;"
+    \ . "  match = MdnQuery.first_match('" . a:query . "');"
+    \ . "  puts match;"
+    \ . "rescue MdnQuery::NoEntryFound;"
+    \ . "  STDERR.puts 'No results for " . a:query . "';"
+    \ . "end"
+
+  return s:jobStart(script, callbacks)
 endfunction
