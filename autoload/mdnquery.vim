@@ -304,16 +304,16 @@ endfunction
 function! s:asyncSearch(query) abort
   let index = len(s:pane.list)
   let script = "begin;"
-    \ . "  list = MdnQuery.list('" . a:query . "');"
-    \ . "  i = " . index . ";"
-    \ . "  entries =  list.items.map do |e|;"
-    \ . "    i += 1;"
-    \ . "    \"{ 'id': #{i}, 'title': '#{e.title}', 'url': '#{e.url}' }\""
-    \ . "  end;"
-    \ . "  puts entries;"
-    \ . "rescue MdnQuery::NoEntryFound;"
-    \ . "  STDERR.puts 'No results for " . a:query . "';"
-    \ . "end"
+        \ . "  list = MdnQuery.list('" . a:query . "');"
+        \ . "  i = " . index . ";"
+        \ . "  entries =  list.items.map do |e|;"
+        \ . "    i += 1;"
+        \ . "    \"{ 'id': #{i}, 'title': '#{e.title}', 'url': '#{e.url}' }\""
+        \ . "  end;"
+        \ . "  puts entries;"
+        \ . "rescue MdnQuery::NoEntryFound;"
+        \ . "  STDERR.puts 'No results for " . a:query . "';"
+        \ . "end"
   let callbacks = {
         \ 'on_stdout': function('s:addEntries'),
         \ 'on_stderr': function('s:handleError'),
@@ -348,11 +348,11 @@ function! s:asyncFirstMatch(query) abort
         \ 'on_exit': function('s:finishJobFirstMatch')
         \ }
   let script = "begin;"
-    \ . "  match = MdnQuery.first_match('" . a:query . "');"
-    \ . "  puts match;"
-    \ . "rescue MdnQuery::NoEntryFound;"
-    \ . "  STDERR.puts 'No results for " . a:query . "';"
-    \ . "end"
+        \ . "  match = MdnQuery.first_match('" . a:query . "');"
+        \ . "  puts match;"
+        \ . "rescue MdnQuery::NoEntryFound;"
+        \ . "  STDERR.puts 'No results for " . a:query . "';"
+        \ . "end"
 
   return s:jobStart(script, callbacks)
 endfunction
@@ -390,11 +390,11 @@ function! s:asyncOpenEntry(index) abort
         \ 'on_exit': function('s:finishJobEntry')
         \ }
   let script = "begin;"
-    \ . "  document = MdnQuery::Document.from_url('" . entry.url . "');"
-    \ . "  puts document;"
-    \ . "rescue MdnQuery::HttpRequestFailed;"
-    \ . "  STDERR.puts 'Network error';"
-    \ . "end"
+        \ . "  document = MdnQuery::Document.from_url('" . entry.url . "');"
+        \ . "  puts document;"
+        \ . "rescue MdnQuery::HttpRequestFailed;"
+        \ . "  STDERR.puts 'Network error';"
+        \ . "end"
 
   return s:jobStart(script, callbacks)
 endfunction
