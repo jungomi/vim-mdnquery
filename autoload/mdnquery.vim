@@ -92,34 +92,11 @@ function! mdnquery#openUnderCursor() abort
     return
   endif
   let index = match[1] - 1
-  let item = s:pane.list[index]
-  if !exists('item.content')
-    try
-      let item.content = s:DocumentFromUrl(item.url)
-    catch /MdnQuery:/
-      call s:errorMsg(v:errmsg)
-      return
-    endtry
+  if has('nvim')
+    call s:asyncOpenEntry(index)
+  else
+    call s:syncOpenEntry(index)
   endif
-  call s:pane.SetContent(item.content)
-  let s:pane.contentType = 'entry'
-endfunction
-
-function! s:DocumentFromUrl(url) abort
-  let lines = []
-  ruby << EOF
-    begin
-      url = VIM.evaluate('a:url')
-      document = MdnQuery::Document.from_url(url)
-      document.to_md.each_line do |line|
-        escaped = line.gsub('"', '\"').chomp
-        VIM.evaluate("add(lines, \"#{escaped}\")")
-      end
-    rescue MdnQuery::HttpRequestFailed
-      VIM.evaluate("s:throw('Network error')")
-    end
-EOF
-  return lines
 endfunction
 
 " Pane
@@ -221,6 +198,15 @@ function! s:pane.ShowFirstMatch() abort
   let self.contentType = 'firstMatch'
 endfunction
 
+function! s:pane.ShowEntry(id) abort
+  let entry = get(self.list, a:id, {})
+  if !exists('entry.content') || empty(entry.content)
+    return
+  endif
+  call self.SetContent(entry.content)
+  let s:pane.contentType = 'entry'
+endfunction
+
 function! s:pane.SetContent(lines) abort
   let prevwin = winnr()
   if self.Exists()
@@ -253,6 +239,8 @@ function! s:pane.Title() abort
 endfunction
 
 " Async jobs
+let s:async = {}
+
 function! s:jobStart(script, callbacks) abort
   let cmd = ['ruby', '-e', 'require "mdn_query"', '-e', a:script]
   let jobId = jobstart(cmd, a:callbacks)
@@ -272,11 +260,20 @@ function! s:handleFirstMatch(id, data, event) abort
   call extend(s:pane.firstMatch.content, a:data)
 endfunction
 
+function! s:handleEntry(id, data, event) abort
+  call extend(s:pane.list[s:async.currentIndex].content, a:data)
+endfunction
+
 function! s:handleError(id, data, event) abort
   call s:errorMsg(join(a:data))
 endfunction
 
 function! s:finishJobEntry(id, data, event) abort
+  call s:pane.ShowEntry(s:async.currentIndex)
+  unlet s:async.currentIndex
+endfunction
+
+function! s:finishJobFirstMatch(id, data, event) abort
   call s:pane.ShowFirstMatch()
 endfunction
 
@@ -346,7 +343,7 @@ function! s:asyncFirstMatch(query) abort
   let callbacks = {
         \ 'on_stdout': function('s:handleFirstMatch'),
         \ 'on_stderr': function('s:handleError'),
-        \ 'on_exit': function('s:finishJobEntry')
+        \ 'on_exit': function('s:finishJobFirstMatch')
         \ }
   let script = "begin;"
     \ . "  match = MdnQuery.first_match('" . a:query . "');"
@@ -356,4 +353,63 @@ function! s:asyncFirstMatch(query) abort
     \ . "end"
 
   return s:jobStart(script, callbacks)
+endfunction
+
+function! s:syncOpenEntry(index) abort
+  let entry = get(s:pane.list, a:index, {})
+  if !exists('entry.url')
+    return
+  endif
+  if !exists('entry.content')
+    try
+      let entry.content = s:DocumentFromUrl(entry.url)
+    catch /MdnQuery:/
+      call s:errorMsg(v:errmsg)
+      return
+    endtry
+  endif
+  call s:pane.ShowEntry(a:index)
+endfunction
+
+function! s:asyncOpenEntry(index) abort
+  let entry = get(s:pane.list, a:index, {})
+  if exists('entry.content') && !empty(entry.content)
+    call s:pane.ShowEntry(a:index)
+    return
+  endif
+  if !exists('entry.url')
+    return
+  endif
+  let s:async.currentIndex = a:index
+  let entry.content = []
+  let callbacks = {
+        \ 'on_stdout': function('s:handleEntry'),
+        \ 'on_stderr': function('s:handleError'),
+        \ 'on_exit': function('s:finishJobEntry')
+        \ }
+  let script = "begin;"
+    \ . "  document = MdnQuery::Document.from_url('" . entry.url . "');"
+    \ . "  puts document;"
+    \ . "rescue MdnQuery::HttpRequestFailed;"
+    \ . "  STDERR.puts 'Network error';"
+    \ . "end"
+
+  return s:jobStart(script, callbacks)
+endfunction
+
+function! s:DocumentFromUrl(url) abort
+  let lines = []
+  ruby << EOF
+    begin
+      url = VIM.evaluate('a:url')
+      document = MdnQuery::Document.from_url(url)
+      document.to_md.each_line do |line|
+        escaped = line.gsub('"', '\"').chomp
+        VIM.evaluate("add(lines, \"#{escaped}\")")
+      end
+    rescue MdnQuery::HttpRequestFailed
+      VIM.evaluate("s:throw('Network error')")
+    end
+EOF
+  return lines
 endfunction
