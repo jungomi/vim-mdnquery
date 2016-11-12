@@ -1,4 +1,6 @@
-ruby require 'mdn_query'
+if !has('neovim')
+  ruby require 'mdn_query'
+endif
 
 function! s:errorMsg(msg) abort
   echohl ErrorMsg
