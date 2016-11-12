@@ -77,7 +77,7 @@ endfunction
 function! mdnquery#showList() abort
   if s:pane.contentType == 'list'
     if !s:pane.IsVisible()
-      s:pane.Show()
+      call s:pane.Show()
     endif
     return
   endif
@@ -208,13 +208,8 @@ function! s:pane.Hide() abort
 endfunction
 
 function! s:pane.ShowList() abort
-  if empty(self.list)
-    call s:errorMsg('No list available')
-    return
-  endif
-  let title = 'Search results for ' . self.query
   let lines = map(copy(self.list), "v:val.id . ') ' . v:val.title")
-  call insert(lines, title)
+  call insert(lines, self.Title())
   call self.SetContent(lines)
   let self.contentType = 'list'
 endfunction
@@ -238,6 +233,16 @@ function! s:pane.SetContent(lines) abort
   if prevwin != winnr()
     execute prevwin . 'wincmd w'
   endif
+endfunction
+
+function! s:pane.Title() abort
+  if empty(self.query)
+    return 'No search results'
+  endif
+  if empty(self.list)
+    return 'No search results for ' . self.query
+  endif
+  return 'Search results for ' . self.query
 endfunction
 
 " Async jobs
@@ -278,9 +283,10 @@ function! s:syncSearch(query) abort
         item = "{ 'id': #{id}, 'title': '#{e.title}', 'url': '#{e.url}' }"
         VIM.evaluate("add(s:pane.list, #{item})")
       end
-      VIM.evaluate('s:pane.ShowList()')
     rescue MdnQuery::NoEntryFound
       VIM.evaluate("s:errorMsg('No results for #{query}')")
+    ensure
+      VIM.evaluate('s:pane.ShowList()')
     end
 EOF
 endfunction
