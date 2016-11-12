@@ -32,8 +32,8 @@ function! mdnquery#firstMatch(...) abort
     return
   endif
   let query = join(a:000)
-  let s:pane.query = query
-  let s:pane.firstMatch = []
+  let s:pane.firstMatch.query = query
+  let s:pane.firstMatch.content = []
   if has('nvim')
     call s:asyncFirstMatch(query)
   else
@@ -82,7 +82,7 @@ function! mdnquery#openUnderCursor() abort
     call s:errorMsg('Must be inside a MdnQuery buffer')
     return
   endif
-  if s:pane.contentType == 'entry'
+  if s:pane.contentType != 'list'
     return
   endif
   let line = getline('.')
@@ -128,7 +128,10 @@ let s:pane = {
       \ 'list': [],
       \ 'query': '',
       \ 'contentType': 'none',
-      \ 'firstMatch': []
+      \ 'firstMatch': {
+      \     'query': '',
+      \     'content': []
+      \   }
       \ }
 
 function! s:pane.Create() abort
@@ -209,10 +212,10 @@ function! s:pane.ShowList() abort
 endfunction
 
 function! s:pane.ShowFirstMatch() abort
-  if empty(self.firstMatch)
-    let content = ['No result for ' . self.query]
+  if empty(self.firstMatch.content)
+    let content = ['No result for ' . self.firstMatch.query]
   else
-    let content = self.firstMatch
+    let content = self.firstMatch.content
   endif
   call self.SetContent(content)
   let self.contentType = 'firstMatch'
@@ -266,7 +269,7 @@ function! s:addEntries(id, data, event) abort
 endfunction
 
 function! s:handleFirstMatch(id, data, event) abort
-  call extend(s:pane.firstMatch, a:data)
+  call extend(s:pane.firstMatch.content, a:data)
 endfunction
 
 function! s:handleError(id, data, event) abort
@@ -329,7 +332,7 @@ function! s:syncFirstMatch(query) abort
       match = MdnQuery.first_match(query)
       match.to_md.each_line do |line|
         escaped = line.gsub('"', '\"').chomp
-        VIM.evaluate("add(s:pane.firstMatch, \"#{escaped}\")")
+        VIM.evaluate("add(s:pane.firstMatch.content, \"#{escaped}\")")
       end
     rescue MdnQuery::NoEntryFound
       VIM.evaluate("s:errorMsg('No results for #{query}')")
