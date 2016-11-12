@@ -13,9 +13,17 @@ function! s:throw(msg) abort
   throw v:errmsg
 endfunction
 
+function! s:neovimBusy() abort
+  return has('nvim') && s:async.active
+endfunction
+
 function! mdnquery#search(...) abort
   if empty(a:000)
     call s:errorMsg('Missing search term')
+    return
+  endif
+  if s:neovimBusy()
+    call s:errorMsg('Cannot start another job before the current finished')
     return
   endif
   let query = join(a:000)
@@ -31,6 +39,10 @@ endfunction
 function! mdnquery#firstMatch(...) abort
   if empty(a:000)
     call s:errorMsg('Missing search term')
+    return
+  endif
+  if s:neovimBusy()
+    call s:errorMsg('Cannot start another job before the current finished')
     return
   endif
   let query = join(a:000)
@@ -85,6 +97,10 @@ function! mdnquery#openUnderCursor() abort
     return
   endif
   if s:pane.contentType != 'list'
+    return
+  endif
+  if s:neovimBusy()
+    call s:errorMsg('Cannot start another job before the current finished')
     return
   endif
   let line = getline('.')
@@ -241,11 +257,16 @@ function! s:pane.Title() abort
 endfunction
 
 " Async jobs
-let s:async = {}
+let s:async = {
+      \ 'active': 0
+      \ }
 
 function! s:jobStart(script, callbacks) abort
   let cmd = ['ruby', '-e', 'require "mdn_query"', '-e', a:script]
   let jobId = jobstart(cmd, a:callbacks)
+  if jobId > 0
+    let s:async.active = 1
+  endif
 
   return jobId
 endfunction
@@ -273,14 +294,17 @@ endfunction
 function! s:finishJobEntry(id, data, event) abort
   call s:pane.ShowEntry(s:async.currentIndex)
   unlet s:async.currentIndex
+  let s:async.active = 0
 endfunction
 
 function! s:finishJobFirstMatch(id, data, event) abort
   call s:pane.ShowFirstMatch()
+  let s:async.active = 0
 endfunction
 
 function! s:finishJobList(id, data, event) abort
   call s:pane.ShowList()
+  let s:async.active = 0
 endfunction
 
 function! s:syncSearch(query) abort
