@@ -13,8 +13,12 @@ function! s:throw(msg) abort
   throw v:errmsg
 endfunction
 
-function! s:neovimBusy() abort
-  return has('nvim') && s:async.active
+function! s:hasJob() abort
+  return has('nvim') || has('job') && has('channel')
+endfunction
+
+function! s:busy() abort
+  return s:hasJob() && s:async.active
 endfunction
 
 function! mdnquery#search(...) abort
@@ -22,14 +26,14 @@ function! mdnquery#search(...) abort
     call s:errorMsg('Missing search term')
     return
   endif
-  if s:neovimBusy()
+  if s:busy()
     call s:errorMsg('Cannot start another job before the current finished')
     return
   endif
   let query = join(a:000)
   let s:pane.query = query
   let s:pane.list = []
-  if has('nvim')
+  if s:hasJob()
     call s:asyncSearch(query)
   else
     call s:syncSearch(query)
@@ -41,14 +45,14 @@ function! mdnquery#firstMatch(...) abort
     call s:errorMsg('Missing search term')
     return
   endif
-  if s:neovimBusy()
+  if s:busy()
     call s:errorMsg('Cannot start another job before the current finished')
     return
   endif
   let query = join(a:000)
   let s:pane.firstMatch.query = query
   let s:pane.firstMatch.content = []
-  if has('nvim')
+  if s:hasJob()
     call s:asyncFirstMatch(query)
   else
     call s:syncFirstMatch(query)
@@ -99,7 +103,7 @@ function! mdnquery#openUnderCursor() abort
   if s:pane.contentType != 'list'
     return
   endif
-  if s:neovimBusy()
+  if s:busy()
     call s:errorMsg('Cannot start another job before the current finished')
     return
   endif
@@ -110,7 +114,7 @@ function! mdnquery#openUnderCursor() abort
     return
   endif
   let index = match[1] - 1
-  if has('nvim')
+  if s:hasJob()
     call s:asyncOpenEntry(index)
   else
     call s:syncOpenEntry(index)
@@ -263,15 +267,36 @@ let s:async = {
 
 function! s:jobStart(script, callbacks) abort
   let cmd = ['ruby', '-e', 'require "mdn_query"', '-e', a:script]
-  let jobId = jobstart(cmd, a:callbacks)
-  if jobId > 0
-    let s:async.active = 1
+  if has('nvim')
+    let jobId = jobstart(cmd, a:callbacks)
+    if jobId > 0
+      let s:async.active = 1
+    endif
+  else
+    let job = job_start(cmd, a:callbacks)
+    if job_status(job) != 'fail'
+      let s:async.active = 1
+    endif
   endif
-
-  return jobId
 endfunction
 
-function! s:addEntries(id, data, event) abort
+function! s:finishJobEntry(...) abort
+  call s:pane.ShowEntry(s:async.currentIndex)
+  unlet s:async.currentIndex
+  let s:async.active = 0
+endfunction
+
+function! s:finishJobFirstMatch(...) abort
+  call s:pane.ShowFirstMatch()
+  let s:async.active = 0
+endfunction
+
+function! s:finishJobList(...) abort
+  call s:pane.ShowList()
+  let s:async.active = 0
+endfunction
+
+function! s:nvimHandleSearch(id, data, event) abort
   " Remove last empty line
   call remove(a:data, -1)
   for entry in a:data
@@ -279,32 +304,32 @@ function! s:addEntries(id, data, event) abort
   endfor
 endfunction
 
-function! s:handleFirstMatch(id, data, event) abort
+function! s:nvimHandleFirstMatch(id, data, event) abort
   call extend(s:pane.firstMatch.content, a:data)
 endfunction
 
-function! s:handleEntry(id, data, event) abort
+function! s:nvimHandleEntry(id, data, event) abort
   call extend(s:pane.list[s:async.currentIndex].content, a:data)
 endfunction
 
-function! s:handleError(id, data, event) abort
+function! s:nvimHandleError(id, data, event) abort
   call s:errorMsg(join(a:data))
 endfunction
 
-function! s:finishJobEntry(id, data, event) abort
-  call s:pane.ShowEntry(s:async.currentIndex)
-  unlet s:async.currentIndex
-  let s:async.active = 0
+function! s:vimHandleSearch(channel, msg) abort
+  call add(s:pane.list, eval(a:msg))
 endfunction
 
-function! s:finishJobFirstMatch(id, data, event) abort
-  call s:pane.ShowFirstMatch()
-  let s:async.active = 0
+function! s:vimHandleFirstMatch(channel, msg) abort
+  call add(s:pane.firstMatch.content, a:msg)
 endfunction
 
-function! s:finishJobList(id, data, event) abort
-  call s:pane.ShowList()
-  let s:async.active = 0
+function! s:vimHandleEntry(channel, msg) abort
+  call add(s:pane.list[s:async.currentIndex].content, a:msg)
+endfunction
+
+function! s:vimHandleError(channel, msg) abort
+  call s:errorMsg(join(a:msg))
 endfunction
 
 function! s:syncSearch(query) abort
@@ -338,11 +363,19 @@ function! s:asyncSearch(query) abort
         \ . "rescue MdnQuery::NoEntryFound;"
         \ . "  STDERR.puts 'No results for " . a:query . "';"
         \ . "end"
-  let callbacks = {
-        \ 'on_stdout': function('s:addEntries'),
-        \ 'on_stderr': function('s:handleError'),
-        \ 'on_exit': function('s:finishJobList')
-        \ }
+  if has('nvim')
+    let callbacks = {
+          \ 'on_stdout': function('s:nvimHandleSearch'),
+          \ 'on_stderr': function('s:nvimHandleError'),
+          \ 'on_exit': function('s:finishJobList')
+          \ }
+  else
+    let callbacks = {
+          \ 'out_cb': function('s:vimHandleSearch'),
+          \ 'err_cb': function('s:vimHandleError'),
+          \ 'close_cb': function('s:finishJobList')
+          \ }
+  endif
 
   return s:jobStart(script, callbacks)
 endfunction
@@ -366,11 +399,19 @@ EOF
 endfunction
 
 function! s:asyncFirstMatch(query) abort
-  let callbacks = {
-        \ 'on_stdout': function('s:handleFirstMatch'),
-        \ 'on_stderr': function('s:handleError'),
-        \ 'on_exit': function('s:finishJobFirstMatch')
-        \ }
+  if has('nvim')
+    let callbacks = {
+          \ 'on_stdout': function('s:nvimHandleFirstMatch'),
+          \ 'on_stderr': function('s:nvimHandleError'),
+          \ 'on_exit': function('s:finishJobFirstMatch')
+          \ }
+  else
+    let callbacks = {
+          \ 'out_cb': function('s:vimHandleFirstMatch'),
+          \ 'err_cb': function('s:vimHandleError'),
+          \ 'close_cb': function('s:finishJobFirstMatch')
+          \ }
+  endif
   let script = "begin;"
         \ . "  match = MdnQuery.first_match('" . a:query . "');"
         \ . "  puts match;"
@@ -408,11 +449,19 @@ function! s:asyncOpenEntry(index) abort
   endif
   let s:async.currentIndex = a:index
   let entry.content = []
-  let callbacks = {
-        \ 'on_stdout': function('s:handleEntry'),
-        \ 'on_stderr': function('s:handleError'),
-        \ 'on_exit': function('s:finishJobEntry')
-        \ }
+  if has('nvim')
+    let callbacks = {
+          \ 'on_stdout': function('s:nvimHandleEntry'),
+          \ 'on_stderr': function('s:nvimHandleError'),
+          \ 'on_exit': function('s:finishJobEntry')
+          \ }
+  else
+    let callbacks = {
+          \ 'out_cb': function('s:vimHandleEntry'),
+          \ 'err_cb': function('s:vimHandleError'),
+          \ 'close_cb': function('s:finishJobEntry')
+          \ }
+  endif
   let script = "begin;"
         \ . "  document = MdnQuery::Document.from_url('" . entry.url . "');"
         \ . "  puts document;"
