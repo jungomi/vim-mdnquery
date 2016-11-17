@@ -1,4 +1,8 @@
-if !has('nvim')
+function! s:hasJob() abort
+  return has('nvim') || has('job') && has('channel')
+endfunction
+
+if !s:hasJob()
   ruby require 'mdn_query'
 endif
 
@@ -11,10 +15,6 @@ endfunction
 function! s:throw(msg) abort
   let v:errmsg = 'MdnQuery: ' . a:msg
   throw v:errmsg
-endfunction
-
-function! s:hasJob() abort
-  return has('nvim') || has('job') && has('channel')
 endfunction
 
 function! s:busy() abort
