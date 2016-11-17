@@ -329,7 +329,7 @@ function! s:vimHandleEntry(channel, msg) abort
 endfunction
 
 function! s:vimHandleError(channel, msg) abort
-  call s:errorMsg(join(a:msg))
+  call s:errorMsg(a:msg)
 endfunction
 
 function! s:syncSearch(query) abort
