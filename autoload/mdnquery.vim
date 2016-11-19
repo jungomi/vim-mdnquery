@@ -186,7 +186,7 @@ function! s:pane.Create() abort
     return
   endif
   let prevwin = winnr()
-  execute 'keepalt botright new ' . self.bufname
+  execute 'silent keepalt botright new ' . self.bufname
   setlocal noswapfile
   setlocal buftype=nowrite
   setlocal bufhidden=hide
@@ -238,7 +238,7 @@ function! s:pane.Show() abort
     return
   endif
   let prevwin = winnr()
-  execute 'keepalt botright sbuffer ' . self.bufname
+  execute 'silent keepalt botright sbuffer ' . self.bufname
   if prevwin != winnr()
     execute prevwin . 'wincmd w'
   endif
