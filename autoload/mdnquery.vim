@@ -88,7 +88,7 @@ endfunction
 function! mdnquery#showList() abort
   if s:pane.contentType == 'list'
     if !s:pane.IsVisible()
-      call s:pane.Show()
+      call mdnquery#show()
     endif
     return
   endif
