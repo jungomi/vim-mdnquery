@@ -34,7 +34,11 @@ function! mdnquery#search(...) abort
   let s:pane.query = query
   if s:history.HasList(query)
     let s:pane.list = s:history.GetList(query)
-    call s:pane.ShowList()
+    if s:async.firstMatch
+      call s:pane.OpenEntry(0)
+    else
+      call s:pane.ShowList()
+    endif
     return
   endif
   let s:pane.list = []
@@ -42,38 +46,18 @@ function! mdnquery#search(...) abort
     call s:asyncSearch(query)
   else
     call s:syncSearch(query)
+    if s:async.firstMatch
+      call s:pane.OpenEntry(0)
+    else
+      call s:pane.ShowList()
+    endif
   endif
 endfunction
 
 function! mdnquery#firstMatch(...) abort
-  if empty(a:000)
-    call s:errorMsg('Missing search term')
-    return
-  endif
-  if s:busy()
-    call s:errorMsg('Cannot start another job before the current finished')
-    return
-  endif
   let query = join(a:000)
-  let s:pane.firstMatch.query = query
-  if s:history.HasList(query)
-    let list = s:history.GetList(query)
-    let first = list[0]
-    if exists('first.content') && !empty(first.content)
-      let s:pane.firstMatch.content = first.content
-      call s:pane.ShowFirstMatch()
-    else
-      let s:pane.list = list
-      call s:pane.OpenEntry(0)
-    endif
-  else
-    let s:pane.firstMatch.content = []
-    if s:hasJob()
-      call s:asyncFirstMatch(query)
-    else
-      call s:syncFirstMatch(query)
-    endif
-  endif
+  let s:async.firstMatch = 1
+  call mdnquery#search(query)
 endfunction
 
 function! mdnquery#toggle() abort
@@ -139,8 +123,6 @@ function! mdnquery#statusline() abort
     return 'MdnQuery - search results for: ' . s:pane.query
   elseif s:pane.contentType == 'entry'
     return 'MdnQuery - documentation for: ' . s:pane.currentEntry
-  elseif s:pane.contentType == 'firstMatch'
-    return 'MdnQuery - first match for: ' . s:pane.firstMatch.query
   else
     return 'MdnQuery'
   endif
@@ -174,11 +156,7 @@ let s:pane = {
       \ 'list': [],
       \ 'query': '',
       \ 'contentType': 'none',
-      \ 'currentEntry': '',
-      \ 'firstMatch': {
-      \     'query': '',
-      \     'content': []
-      \   }
+      \ 'currentEntry': ''
       \ }
 
 function! s:pane.Create() abort
@@ -261,16 +239,6 @@ function! s:pane.ShowList() abort
   let self.contentType = 'list'
 endfunction
 
-function! s:pane.ShowFirstMatch() abort
-  if empty(self.firstMatch.content)
-    let content = ['No result for ' . self.firstMatch.query]
-  else
-    let content = self.firstMatch.content
-  endif
-  call self.SetContent(content)
-  let self.contentType = 'firstMatch'
-endfunction
-
 function! s:pane.ShowEntry(id) abort
   let entry = get(self.list, a:id, {})
   if !exists('entry.content') || empty(entry.content)
@@ -313,6 +281,7 @@ function! s:pane.Title() abort
 endfunction
 
 function! s:pane.OpenEntry(index) abort
+  let s:async.firstMatch = 0
   let entry = get(self.list, a:index, {})
   if exists('entry.content') && !empty(entry.content)
     call self.ShowEntry(a:index)
@@ -330,7 +299,8 @@ endfunction
 
 " Async jobs
 let s:async = {
-      \ 'active': 0
+      \ 'active': 0,
+      \ 'firstMatch': 0
       \ }
 
 function! s:jobStart(script, callbacks) abort
@@ -356,15 +326,14 @@ function! s:finishJobEntry(...) abort
   let s:history.entries[entry.title] = entry.content
 endfunction
 
-function! s:finishJobFirstMatch(...) abort
-  call s:pane.ShowFirstMatch()
-  let s:async.active = 0
-endfunction
-
 function! s:finishJobList(...) abort
-  call s:pane.ShowList()
-  let s:async.active = 0
   let s:history.list[s:pane.query] = s:pane.list
+  if s:async.firstMatch
+    call s:pane.OpenEntry(0)
+  else
+    call s:pane.ShowList()
+    let s:async.active = 0
+  endif
 endfunction
 
 function! s:nvimHandleSearch(id, data, event) abort
@@ -374,10 +343,6 @@ function! s:nvimHandleSearch(id, data, event) abort
     let escaped = substitute(entry, '\(\w\)''\(\w\)', '\1''''\2', 'g')
     call add(s:pane.list, eval(escaped))
   endfor
-endfunction
-
-function! s:nvimHandleFirstMatch(id, data, event) abort
-  call extend(s:pane.firstMatch.content, a:data)
 endfunction
 
 function! s:nvimHandleEntry(id, data, event) abort
@@ -391,10 +356,6 @@ endfunction
 function! s:vimHandleSearch(channel, msg) abort
   let escaped = substitute(a:msg, '\(\w\)''\(\w\)', '\1''''\2', 'g')
   call add(s:pane.list, eval(escaped))
-endfunction
-
-function! s:vimHandleFirstMatch(channel, msg) abort
-  call add(s:pane.firstMatch.content, a:msg)
 endfunction
 
 function! s:vimHandleEntry(channel, msg) abort
@@ -417,8 +378,6 @@ function! s:syncSearch(query) abort
       end
     rescue MdnQuery::NoEntryFound
       VIM.evaluate("s:errorMsg('No results for #{query}')")
-    ensure
-      VIM.evaluate('s:pane.ShowList()')
     end
 EOF
 endfunction
@@ -452,49 +411,6 @@ function! s:asyncSearch(query) abort
 
   return s:jobStart(script, callbacks)
 endfunction
-
-function! s:syncFirstMatch(query) abort
-  let lines = []
-  ruby << EOF
-    begin
-      query = VIM.evaluate('a:query')
-      match = MdnQuery.first_match(query)
-      match.to_md.each_line do |line|
-        escaped = line.gsub('"', '\"').chomp
-        VIM.evaluate("add(s:pane.firstMatch.content, \"#{escaped}\")")
-      end
-    rescue MdnQuery::NoEntryFound
-      VIM.evaluate("s:errorMsg('No results for #{query}')")
-    ensure
-      VIM.evaluate("s:pane.ShowFirstMatch()")
-    end
-EOF
-endfunction
-
-function! s:asyncFirstMatch(query) abort
-  if has('nvim')
-    let callbacks = {
-          \ 'on_stdout': function('s:nvimHandleFirstMatch'),
-          \ 'on_stderr': function('s:nvimHandleError'),
-          \ 'on_exit': function('s:finishJobFirstMatch')
-          \ }
-  else
-    let callbacks = {
-          \ 'out_cb': function('s:vimHandleFirstMatch'),
-          \ 'err_cb': function('s:vimHandleError'),
-          \ 'close_cb': function('s:finishJobFirstMatch')
-          \ }
-  endif
-  let script = "begin;"
-        \ . "  match = MdnQuery.first_match('" . a:query . "');"
-        \ . "  puts match;"
-        \ . "rescue MdnQuery::NoEntryFound;"
-        \ . "  STDERR.puts 'No results for " . a:query . "';"
-        \ . "end"
-
-  return s:jobStart(script, callbacks)
-endfunction
-
 function! s:syncOpenEntry(index) abort
   let entry = get(s:pane.list, a:index, {})
   if !exists('entry.url')
