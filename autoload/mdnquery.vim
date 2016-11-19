@@ -32,6 +32,11 @@ function! mdnquery#search(...) abort
   endif
   let query = join(a:000)
   let s:pane.query = query
+  if s:history.HasList(query)
+    let s:pane.list = s:history.GetList(query)
+    call s:pane.ShowList()
+    return
+  endif
   let s:pane.list = []
   if s:hasJob()
     call s:asyncSearch(query)
@@ -114,10 +119,18 @@ function! mdnquery#openUnderCursor() abort
     return
   endif
   let index = match[1] - 1
-  if s:hasJob()
-    call s:asyncOpenEntry(index)
+  let entry = get(s:pane.list, index, {})
+  if exists('entry.content') && !empty(entry.content)
+    call s:pane.ShowEntry(index)
+  elseif s:history.HasEntry(entry.title)
+    let entry.content = s:history.GetEntry(entry.title)
+    call s:pane.ShowEntry(index)
   else
-    call s:syncOpenEntry(index)
+    if s:hasJob()
+      call s:asyncOpenEntry(index)
+    else
+      call s:syncOpenEntry(index)
+    endif
   endif
 endfunction
 
@@ -131,6 +144,28 @@ function! mdnquery#statusline() abort
   else
     return 'MdnQuery'
   endif
+endfunction
+
+" History
+let s:history = {
+      \ 'list': {},
+      \ 'entries': {}
+      \ }
+
+function! s:history.HasEntry(title) abort
+  return has_key(self.entries, a:title)
+endfunction
+
+function! s:history.HasList(query) abort
+  return has_key(self.list, a:query)
+endfunction
+
+function! s:history.GetEntry(title) abort
+  return get(self.entries, a:title, {})
+endfunction
+
+function! s:history.GetList(query) abort
+  return get(self.list, a:query, [])
 endfunction
 
 " Pane
@@ -297,8 +332,10 @@ endfunction
 
 function! s:finishJobEntry(...) abort
   call s:pane.ShowEntry(s:async.currentIndex)
+  let entry = s:pane.list[s:async.currentIndex]
   unlet s:async.currentIndex
   let s:async.active = 0
+  let s:history.entries[entry.title] = entry.content
 endfunction
 
 function! s:finishJobFirstMatch(...) abort
@@ -309,6 +346,7 @@ endfunction
 function! s:finishJobList(...) abort
   call s:pane.ShowList()
   let s:async.active = 0
+  let s:history.list[s:pane.query] = s:pane.list
 endfunction
 
 function! s:nvimHandleSearch(id, data, event) abort
