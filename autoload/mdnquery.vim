@@ -121,12 +121,25 @@ function! mdnquery#openUnderCursor() abort
   endif
 endfunction
 
+function! mdnquery#statusline() abort
+  if s:pane.contentType == 'list' && !empty(s:pane.query)
+    return 'MdnQuery - search results for: ' . s:pane.query
+  elseif s:pane.contentType == 'entry'
+    return 'MdnQuery - documentation for: ' . s:pane.currentEntry
+  elseif s:pane.contentType == 'firstMatch'
+    return 'MdnQuery - first match for: ' . s:pane.firstMatch.query
+  else
+    return 'MdnQuery'
+  endif
+endfunction
+
 " Pane
 let s:pane = {
       \ 'bufname': 'mdnquery_result_window',
       \ 'list': [],
       \ 'query': '',
       \ 'contentType': 'none',
+      \ 'currentEntry': '',
       \ 'firstMatch': {
       \     'query': '',
       \     'content': []
@@ -145,6 +158,7 @@ function! s:pane.Create() abort
   setlocal nobuflisted
   setlocal nomodifiable
   setlocal nospell
+  setlocal statusline=%!mdnquery#statusline()
   nnoremap <buffer> <silent> <CR> :call mdnquery#openUnderCursor()<CR>
   nnoremap <buffer> <silent> o :call mdnquery#openUnderCursor()<CR>
   nnoremap <buffer> <silent> r :call mdnquery#showList()<CR>
@@ -226,7 +240,8 @@ function! s:pane.ShowEntry(id) abort
     return
   endif
   call self.SetContent(entry.content)
-  let s:pane.contentType = 'entry'
+  let self.contentType = 'entry'
+  let self.currentEntry = entry.title
 endfunction
 
 function! s:pane.SetContent(lines) abort
