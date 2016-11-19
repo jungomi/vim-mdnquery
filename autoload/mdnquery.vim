@@ -56,11 +56,23 @@ function! mdnquery#firstMatch(...) abort
   endif
   let query = join(a:000)
   let s:pane.firstMatch.query = query
-  let s:pane.firstMatch.content = []
-  if s:hasJob()
-    call s:asyncFirstMatch(query)
+  if s:history.HasList(query)
+    let list = s:history.GetList(query)
+    let first = list[0]
+    if exists('first.content') && !empty(first.content)
+      let s:pane.firstMatch.content = first.content
+      call s:pane.ShowFirstMatch()
+    else
+      let s:pane.list = list
+      call s:pane.OpenEntry(0)
+    endif
   else
-    call s:syncFirstMatch(query)
+    let s:pane.firstMatch.content = []
+    if s:hasJob()
+      call s:asyncFirstMatch(query)
+    else
+      call s:syncFirstMatch(query)
+    endif
   endif
 endfunction
 
@@ -119,19 +131,7 @@ function! mdnquery#openUnderCursor() abort
     return
   endif
   let index = match[1] - 1
-  let entry = get(s:pane.list, index, {})
-  if exists('entry.content') && !empty(entry.content)
-    call s:pane.ShowEntry(index)
-  elseif s:history.HasEntry(entry.title)
-    let entry.content = s:history.GetEntry(entry.title)
-    call s:pane.ShowEntry(index)
-  else
-    if s:hasJob()
-      call s:asyncOpenEntry(index)
-    else
-      call s:syncOpenEntry(index)
-    endif
-  endif
+  call s:pane.OpenEntry(index)
 endfunction
 
 function! mdnquery#statusline() abort
@@ -308,6 +308,22 @@ function! s:pane.Title() abort
     return 'No search results for ' . self.query
   endif
   return 'Search results for ' . self.query
+endfunction
+
+function! s:pane.OpenEntry(index) abort
+  let entry = get(self.list, a:index, {})
+  if exists('entry.content') && !empty(entry.content)
+    call self.ShowEntry(a:index)
+  elseif s:history.HasEntry(entry.title)
+    let entry.content = s:history.GetEntry(entry.title)
+    call self.ShowEntry(a:index)
+  else
+    if s:hasJob()
+      call s:asyncOpenEntry(a:index)
+    else
+      call s:syncOpenEntry(a:index)
+    endif
+  endif
 endfunction
 
 " Async jobs
