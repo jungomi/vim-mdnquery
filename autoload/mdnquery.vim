@@ -369,7 +369,8 @@ function! s:nvimHandleSearch(id, data, event) abort
   " Remove last empty line
   call remove(a:data, -1)
   for entry in a:data
-    call add(s:pane.list, eval(entry))
+    let escaped = substitute(entry, '\(\w\)''\(\w\)', '\1''''\2', 'g')
+    call add(s:pane.list, eval(escaped))
   endfor
 endfunction
 
@@ -386,7 +387,8 @@ function! s:nvimHandleError(id, data, event) abort
 endfunction
 
 function! s:vimHandleSearch(channel, msg) abort
-  call add(s:pane.list, eval(a:msg))
+  let escaped = substitute(a:msg, '\(\w\)''\(\w\)', '\1''''\2', 'g')
+  call add(s:pane.list, eval(escaped))
 endfunction
 
 function! s:vimHandleFirstMatch(channel, msg) abort
