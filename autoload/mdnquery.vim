@@ -51,7 +51,7 @@ function! mdnquery#search(...) abort
     return
   endif
   let query = join(a:000)
-  let topics = ['js']
+  let topics = mdnquery#topics()
   call mdnquery#searchTopics(query, topics)
 endfunction
 
@@ -62,7 +62,7 @@ endfunction
 
 function! mdnquery#firstMatch(...) abort
   let query = join(a:000)
-  let topics = ['js']
+  let topics = mdnquery#topics()
   call mdnquery#firstMatchTopics(query, topics)
 endfunction
 
@@ -136,6 +136,15 @@ function! mdnquery#statusline() abort
   else
     return 'MdnQuery'
   endif
+endfunction
+
+function! mdnquery#topics() abort
+  " Vim has v:t_list, which does not exist in NeoVim
+  let listType = 3
+  if type(g:mdnquery_topics) == listType && !empty(g:mdnquery_topics)
+    return g:mdnquery_topics
+  endif
+  return ['js']
 endfunction
 
 " History
