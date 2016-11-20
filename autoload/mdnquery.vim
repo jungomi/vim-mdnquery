@@ -21,19 +21,15 @@ function! s:busy() abort
   return s:hasJob() && s:async.active
 endfunction
 
-function! mdnquery#search(...) abort
-  if empty(a:000)
-    call s:errorMsg('Missing search term')
-    return
-  endif
+function! mdnquery#searchTopics(query, topics) abort
   if s:busy()
     call s:errorMsg('Cannot start another job before the current finished')
     return
   endif
-  let query = join(a:000)
-  let s:pane.query = query
-  if s:history.HasList(query)
-    let s:pane.list = s:history.GetList(query)
+  let s:pane.query = a:query
+  let s:pane.topics = a:topics
+  if s:history.HasList(a:query, a:topics)
+    let s:pane.list = s:history.GetList(a:query, a:topics)
     if s:async.firstMatch
       call s:pane.OpenEntry(0)
     else
@@ -43,21 +39,31 @@ function! mdnquery#search(...) abort
   endif
   let s:pane.list = []
   if s:hasJob()
-    call s:asyncSearch(query)
+    call s:asyncSearch(a:query, a:topics)
   else
-    call s:syncSearch(query)
-    if s:async.firstMatch
-      call s:pane.OpenEntry(0)
-    else
-      call s:pane.ShowList()
-    endif
+    call s:syncSearch(a:query, a:topics)
   endif
+endfunction
+
+function! mdnquery#search(...) abort
+  if empty(a:000)
+    call s:errorMsg('Missing search term')
+    return
+  endif
+  let query = join(a:000)
+  let topics = ['js']
+  call mdnquery#searchTopics(query, topics)
+endfunction
+
+function! mdnquery#firstMatchTopics(query, topics) abort
+  let s:async.firstMatch = 1
+  call mdnquery#searchTopics(a:query, a:topics)
 endfunction
 
 function! mdnquery#firstMatch(...) abort
   let query = join(a:000)
-  let s:async.firstMatch = 1
-  call mdnquery#search(query)
+  let topics = ['js']
+  call mdnquery#firstMatchTopics(query, topics)
 endfunction
 
 function! mdnquery#focus() abort
@@ -142,16 +148,29 @@ function! s:history.HasEntry(title) abort
   return has_key(self.entries, a:title)
 endfunction
 
-function! s:history.HasList(query) abort
-  return has_key(self.list, a:query)
+function! s:history.HasList(query, topics) abort
+  return !empty(self.GetList(a:query, a:topics))
 endfunction
 
 function! s:history.GetEntry(title) abort
   return get(self.entries, a:title, {})
 endfunction
 
-function! s:history.GetList(query) abort
-  return get(self.list, a:query, [])
+function! s:history.GetList(query, topics) abort
+  let section = get(self.list, string(a:topics), {})
+  return get(section, a:query, [])
+endfunction
+
+function! s:history.SetEntry(entry) abort
+  let s:history.entries[a:entry.title] = a:entry.content
+endfunction
+
+function! s:history.SetList(list, query, topics) abort
+  let topics = string(a:topics)
+  if !has_key(s:history.list, topics)
+    let s:history.list[topics] = {}
+  endif
+  let s:history.list[topics][a:query] = a:list
 endfunction
 
 " Pane
@@ -159,6 +178,7 @@ let s:pane = {
       \ 'bufname': 'mdnquery_result_window',
       \ 'list': [],
       \ 'query': '',
+      \ 'topics': [],
       \ 'contentType': 'none',
       \ 'currentEntry': ''
       \ }
@@ -351,11 +371,11 @@ function! s:finishJobEntry(...) abort
   let entry = s:pane.list[s:async.currentIndex]
   unlet s:async.currentIndex
   let s:async.active = 0
-  let s:history.entries[entry.title] = entry.content
+  call s:history.SetEntry(entry)
 endfunction
 
 function! s:finishJobList(...) abort
-  let s:history.list[s:pane.query] = s:pane.list
+  call s:history.SetList(s:pane.list, s:pane.query, s:pane.topics)
   if s:async.firstMatch
     call s:pane.OpenEntry(0)
   else
@@ -368,7 +388,7 @@ function! s:nvimHandleSearch(id, data, event) abort
   " Remove last empty line
   call remove(a:data, -1)
   for entry in a:data
-    let escaped = substitute(entry, '\(\w\)''\(\w\)', '\1''''\2', 'g')
+    let escaped = s:escapeDict(entry)
     call add(s:pane.list, eval(escaped))
   endfor
 endfunction
@@ -382,7 +402,7 @@ function! s:nvimHandleError(id, data, event) abort
 endfunction
 
 function! s:vimHandleSearch(channel, msg) abort
-  let escaped = substitute(a:msg, '\(\w\)''\(\w\)', '\1''''\2', 'g')
+  let escaped = s:escapeDict(a:msg)
   call add(s:pane.list, eval(escaped))
 endfunction
 
@@ -394,26 +414,35 @@ function! s:vimHandleError(channel, msg) abort
   call s:errorMsg(a:msg)
 endfunction
 
-function! s:syncSearch(query) abort
+function! s:syncSearch(query, topics) abort
   ruby << EOF
     begin
       query = VIM.evaluate('a:query')
-      list = MdnQuery.list(query)
+      topics = VIM.evaluate('a:topics')
+      list = MdnQuery.list(query, topics: topics)
       list.each do |e|
         id = VIM.evaluate('len(s:pane.list)') + 1
         item = "{ 'id': #{id}, 'title': '#{e.title}', 'url': '#{e.url}' }"
-        VIM.evaluate("add(s:pane.list, #{item})")
+        escaped = item.gsub(/(\w)'(\w)/, '\1\'\'\2')
+        VIM.evaluate("add(s:pane.list, #{escaped})")
       end
     rescue MdnQuery::NoEntryFound
       VIM.evaluate("s:errorMsg('No results for #{query}')")
     end
 EOF
+  call s:history.SetList(s:pane.list, s:pane.query, s:pane.topics)
+  if s:async.firstMatch
+    call s:pane.OpenEntry(0)
+  else
+    call s:pane.ShowList()
+  endif
 endfunction
 
-function! s:asyncSearch(query) abort
+function! s:asyncSearch(query, topics) abort
   let index = len(s:pane.list)
+  let topics = string(a:topics)
   let script = "begin;"
-        \ . "  list = MdnQuery.list('" . a:query . "');"
+        \ . "  list = MdnQuery.list('" . a:query . "', topics: " . topics . ");"
         \ . "  i = " . index . ";"
         \ . "  entries =  list.items.map do |e|;"
         \ . "    i += 1;"
@@ -453,6 +482,7 @@ function! s:syncOpenEntry(index) abort
     endtry
   endif
   call s:pane.ShowEntry(a:index)
+  call s:history.SetEntry(entry)
 endfunction
 
 function! s:asyncOpenEntry(index) abort
@@ -504,4 +534,8 @@ function! s:DocumentFromUrl(url) abort
     end
 EOF
   return lines
+endfunction
+
+function! s:escapeDict(dict) abort
+    return substitute(a:dict, '\(\w\)''\(\w\)', '\1''''\2', 'g')
 endfunction
