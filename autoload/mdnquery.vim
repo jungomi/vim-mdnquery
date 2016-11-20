@@ -60,6 +60,10 @@ function! mdnquery#firstMatch(...) abort
   call mdnquery#search(query)
 endfunction
 
+function! mdnquery#focus() abort
+  call s:pane.SetFocus()
+endfunction
+
 function! mdnquery#toggle() abort
   if !s:pane.Exists()
     call s:errorMsg('Nothing to display')
