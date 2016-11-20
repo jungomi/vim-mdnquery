@@ -164,8 +164,7 @@ function! s:pane.Create() abort
     return
   endif
   let prevwin = winnr()
-  let direction = &splitbelow ? 'botright' : 'topleft'
-  execute 'silent keepalt ' . direction . ' new ' . self.bufname
+  execute 'silent ' . self.BufferOptions() . ' new ' . self.bufname
   setlocal noswapfile
   setlocal buftype=nowrite
   setlocal bufhidden=hide
@@ -176,8 +175,14 @@ function! s:pane.Create() abort
   nnoremap <buffer> <silent> <CR> :call mdnquery#openUnderCursor()<CR>
   nnoremap <buffer> <silent> o :call mdnquery#openUnderCursor()<CR>
   nnoremap <buffer> <silent> r :call mdnquery#showList()<CR>
-  if prevwin != winnr()
-    execute prevwin . 'wincmd w'
+  if g:mdnquery_auto_focus
+    if mode() == 'i'
+      silent stopinsert
+    endif
+  else
+    if prevwin != winnr()
+      execute prevwin . 'wincmd w'
+    endif
   endif
 endfunction
 
@@ -217,10 +222,16 @@ function! s:pane.Show() abort
     return
   endif
   let prevwin = winnr()
-  let direction = &splitbelow ? 'botright' : 'topleft'
-  execute 'silent keepalt ' . direction . ' sbuffer ' . self.bufname
-  if prevwin != winnr()
-    execute prevwin . 'wincmd w'
+  execute 'silent ' . self.BufferOptions() . ' split'
+  execute 'silent buffer ' . self.bufname
+  if g:mdnquery_auto_focus
+    if mode() == 'i'
+      silent stopinsert
+    endif
+  else
+    if prevwin != winnr()
+      execute prevwin . 'wincmd w'
+    endif
   endif
 endfunction
 
@@ -265,8 +276,14 @@ function! s:pane.SetContent(lines) abort
   silent $d_
   call cursor(1, 1)
   setlocal nomodifiable
-  if prevwin != winnr()
-    execute prevwin . 'wincmd w'
+  if g:mdnquery_auto_focus
+    if mode() == 'i'
+      silent stopinsert
+    endif
+  else
+    if prevwin != winnr()
+      execute prevwin . 'wincmd w'
+    endif
   endif
 endfunction
 
@@ -295,6 +312,13 @@ function! s:pane.OpenEntry(index) abort
       call s:syncOpenEntry(a:index)
     endif
   endif
+endfunction
+
+function! s:pane.BufferOptions() abort
+  let direction = &splitbelow ? 'botright' : 'topleft'
+  let size = exists('g:mdnquery_size') ? ' ' . g:mdnquery_size . ' ' : ''
+  let vertical = g:mdnquery_vertical ? ' vertical ' : ''
+  return direction . vertical . size
 endfunction
 
 " Async jobs

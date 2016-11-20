@@ -3,6 +3,14 @@ if exists('g:loaded_mdnquery') || &compatible
 endif
 let g:loaded_mdnquery = 1
 
+if !exists('g:mdnquery_vertical')
+  let g:mdnquery_vertical = 0
+endif
+
+if !exists('g:mdnquery_auto_focus')
+  let g:mdnquery_auto_focus = 0
+endif
+
 command! -nargs=* -bar MdnQuery call mdnquery#search(<f-args>)
 command! -nargs=* -bar MdnQueryFirstMatch call mdnquery#firstMatch(<f-args>)
 command! -nargs=0 -bar MdnQueryList call mdnquery#showList()
