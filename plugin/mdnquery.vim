@@ -19,6 +19,21 @@ if !exists('g:mdnquery_show_on_invoke')
   let g:mdnquery_show_on_invoke = 0
 endif
 
+if !exists('g:mdnquery_javascript_man')
+  let g:mdnquery_javascript_man = 'firstMatch'
+endif
+
+augroup mdnquery_javascript
+  autocmd!
+  if !empty(g:mdnquery_javascript_man) && g:mdnquery_javascript_man != 'none'
+    if g:mdnquery_javascript_man == 'firstMatch'
+      autocmd FileType javascript setlocal keywordprg=:MdnQueryFirstMatch
+    else
+      autocmd FileType javascript setlocal keywordprg=:MdnQuery
+    end
+  endif
+augroup END
+
 command! -nargs=* -bar MdnQuery
       \ call mdnquery#search(<q-args>, mdnquery#topics())
 command! -nargs=* -bar MdnQueryFirstMatch
