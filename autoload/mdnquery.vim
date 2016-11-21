@@ -135,7 +135,7 @@ endfunction
 
 function! mdnquery#statusline() abort
   if s:pane.contentType == 'list' && !empty(s:pane.query)
-    return 'MdnQuery - search results for: ' . s:pane.query
+    return 'MdnQuery - search results for: ' . s:pane.Target()
   elseif s:pane.contentType == 'entry'
     return 'MdnQuery - documentation for: ' . s:pane.currentEntry
   else
@@ -334,9 +334,13 @@ function! s:pane.Title() abort
     return 'No search results'
   endif
   if empty(self.list)
-    return 'No search results for ' . self.query
+    return 'No search results for ' . self.Target()
   endif
-  return 'Search results for ' . self.query
+  return 'Search results for ' . self.Target()
+endfunction
+
+function! s:pane.Target() abort
+  return self.query . ' (topics: ' . join(self.topics, ', ') . ')'
 endfunction
 
 function! s:pane.OpenEntry(index) abort
@@ -487,7 +491,7 @@ function! s:asyncSearch(query, topics) abort
     call mdnquery#show()
   endif
   if s:pane.IsVisible()
-    call s:pane.SetContent('>> Searching for ' . a:query . '...')
+    call s:pane.SetContent('>> Searching for ' . s:pane.Target() . '...')
   endif
 
   return s:jobStart(script, callbacks)
