@@ -21,7 +21,11 @@ function! s:busy() abort
   return s:hasJob() && s:async.active
 endfunction
 
-function! mdnquery#searchTopics(query, topics) abort
+function! mdnquery#search(query, topics) abort
+  if empty(a:query)
+    call s:errorMsg('Missing search term')
+    return
+  endif
   if s:busy()
     call s:errorMsg('Cannot start another job before the current finished')
     return
@@ -45,25 +49,9 @@ function! mdnquery#searchTopics(query, topics) abort
   endif
 endfunction
 
-function! mdnquery#search(...) abort
-  if empty(a:000)
-    call s:errorMsg('Missing search term')
-    return
-  endif
-  let query = join(a:000)
-  let topics = mdnquery#topics()
-  call mdnquery#searchTopics(query, topics)
-endfunction
-
-function! mdnquery#firstMatchTopics(query, topics) abort
+function! mdnquery#firstMatch(query, topics) abort
   let s:async.firstMatch = 1
-  call mdnquery#searchTopics(a:query, a:topics)
-endfunction
-
-function! mdnquery#firstMatch(...) abort
-  let query = join(a:000)
-  let topics = mdnquery#topics()
-  call mdnquery#firstMatchTopics(query, topics)
+  call mdnquery#search(a:query, a:topics)
 endfunction
 
 function! mdnquery#focus() abort
@@ -72,7 +60,7 @@ endfunction
 
 function! mdnquery#toggle() abort
   if !s:pane.Exists()
-    call s:errorMsg('Nothing to display')
+    call s:pane.ShowList()
     return
   endif
   if s:pane.IsVisible()
@@ -96,7 +84,7 @@ function! mdnquery#hide() abort
   call mdnquery#toggle()
 endfunction
 
-function! mdnquery#showList() abort
+function! mdnquery#list() abort
   if s:pane.contentType == 'list'
     if !s:pane.IsVisible()
       call mdnquery#show()
@@ -106,7 +94,7 @@ function! mdnquery#showList() abort
   call s:pane.ShowList()
 endfunction
 
-function! mdnquery#openEntry(num) abort
+function! mdnquery#entry(num) abort
   if a:num < 1
     call s:errorMsg('Entry numbers start at 1')
     return
@@ -119,7 +107,7 @@ function! mdnquery#openEntry(num) abort
   call s:pane.OpenEntry(index)
 endfunction
 
-function! mdnquery#openUnderCursor() abort
+function! mdnquery#entryUnderCursor() abort
   if !s:pane.IsFocused()
     call s:errorMsg('Must be inside a MdnQuery buffer')
     return
@@ -218,9 +206,9 @@ function! s:pane.Create() abort
   setlocal nomodifiable
   setlocal nospell
   setlocal statusline=%!mdnquery#statusline()
-  nnoremap <buffer> <silent> <CR> :call mdnquery#openUnderCursor()<CR>
-  nnoremap <buffer> <silent> o :call mdnquery#openUnderCursor()<CR>
-  nnoremap <buffer> <silent> r :call mdnquery#showList()<CR>
+  nnoremap <buffer> <silent> <CR> :call mdnquery#entryUnderCursor()<CR>
+  nnoremap <buffer> <silent> o :call mdnquery#entryUnderCursor()<CR>
+  nnoremap <buffer> <silent> r :call mdnquery#list()<CR>
   if g:mdnquery_auto_focus
     if mode() == 'i'
       silent stopinsert
