@@ -15,6 +15,10 @@ if !exists('g:mdnquery_topics')
   let g:mdnquery_topics = ['js']
 endif
 
+if !exists('g:mdnquery_show_on_invoke')
+  let g:mdnquery_show_on_invoke = 0
+endif
+
 command! -nargs=* -bar MdnQuery
       \ call mdnquery#search(<q-args>, mdnquery#topics())
 command! -nargs=* -bar MdnQueryFirstMatch

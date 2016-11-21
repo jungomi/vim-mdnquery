@@ -479,6 +479,9 @@ function! s:asyncSearch(query, topics) abort
           \ 'close_cb': function('s:finishJobList')
           \ }
   endif
+  if g:mdnquery_show_on_invoke
+    call mdnquery#show()
+  endif
   if s:pane.IsVisible()
     call s:pane.SetContent('>> Searching for ' . a:query . '...')
   endif
@@ -532,6 +535,9 @@ function! s:asyncOpenEntry(index) abort
         \ . "rescue MdnQuery::HttpRequestFailed;"
         \ . "  STDERR.puts 'Network error';"
         \ . "end"
+  if g:mdnquery_show_on_invoke
+    call mdnquery#show()
+  endif
   if s:pane.IsVisible()
     call s:pane.SetContent('>> Fetching ' . entry.title . '...')
   endif
