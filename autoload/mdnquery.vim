@@ -6,6 +6,10 @@ if !s:hasJob()
   ruby require 'mdn_query'
 endif
 
+function! s:msg(msg) abort
+  echomsg 'MdnQuery: ' . a:msg
+endfunction
+
 function! s:errorMsg(msg) abort
   echohl ErrorMsg
   echomsg 'MdnQuery ERROR: ' . a:msg
@@ -408,7 +412,7 @@ function! s:nvimHandleEntry(id, data, event) abort
 endfunction
 
 function! s:nvimHandleError(id, data, event) abort
-  call s:errorMsg(join(a:data))
+  call s:msg(join(a:data))
 endfunction
 
 function! s:vimHandleSearch(channel, msg) abort
@@ -421,7 +425,7 @@ function! s:vimHandleEntry(channel, msg) abort
 endfunction
 
 function! s:vimHandleError(channel, msg) abort
-  call s:errorMsg(a:msg)
+  call s:msg(a:msg)
 endfunction
 
 function! s:syncSearch(query, topics) abort
@@ -437,7 +441,7 @@ function! s:syncSearch(query, topics) abort
         VIM.evaluate("add(s:pane.list, #{escaped})")
       end
     rescue MdnQuery::NoEntryFound
-      VIM.evaluate("s:errorMsg('No results for #{query}')")
+      VIM.evaluate("s:msg('No results for #{query}')")
     end
 EOF
   call s:history.SetList(s:pane.list, s:pane.query, s:pane.topics)
@@ -475,6 +479,9 @@ function! s:asyncSearch(query, topics) abort
           \ 'close_cb': function('s:finishJobList')
           \ }
   endif
+  if s:pane.IsVisible()
+    call s:pane.SetContent('>> Searching for ' . a:query . '...')
+  endif
 
   return s:jobStart(script, callbacks)
 endfunction
@@ -487,7 +494,7 @@ function! s:syncOpenEntry(index) abort
     try
       let entry.content = s:DocumentFromUrl(entry.url)
     catch /MdnQuery:/
-      call s:errorMsg(v:errmsg)
+      call s:msg(v:errmsg)
       return
     endtry
   endif
@@ -525,6 +532,9 @@ function! s:asyncOpenEntry(index) abort
         \ . "rescue MdnQuery::HttpRequestFailed;"
         \ . "  STDERR.puts 'Network error';"
         \ . "end"
+  if s:pane.IsVisible()
+    call s:pane.SetContent('>> Fetching ' . entry.title . '...')
+  endif
 
   return s:jobStart(script, callbacks)
 endfunction
