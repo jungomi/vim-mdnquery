@@ -98,7 +98,7 @@ function! mdnquery#list() abort
   call s:pane.ShowList()
 endfunction
 
-function! mdnquery#entry(num) abort
+function! mdnquery#entry(num) range abort
   if empty(s:pane.list)
     call s:errorMsg('No entries available')
     return

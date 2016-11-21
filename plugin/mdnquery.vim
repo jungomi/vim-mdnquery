@@ -23,3 +23,27 @@ command! -nargs=0 -bar MdnQueryList call mdnquery#list()
 command! -nargs=0 -bar MdnQueryToggle call mdnquery#toggle()
 command! -nargs=0 -bar MdnQueryShow call mdnquery#show()
 command! -nargs=0 -bar MdnQueryHide call mdnquery#hide()
+
+nnoremap <silent> <Plug>MdnqueryEntry :call mdnquery#entry(v:count)<CR>
+nnoremap <silent> <Plug>MdnqueryWordsearch
+      \ :call mdnquery#search(expand('<cword>'), mdnquery#topics())<CR>
+nnoremap <silent> <Plug>MdnqueryWordfirstmatch
+      \ :call mdnquery#firstMatch(expand('<cword>'), mdnquery#topics())<CR>
+xnoremap <silent> <Plug>MdnqueryVisualsearch
+      \ :<C-u>call mdnquery#search(<SID>selected(), mdnquery#topics())<CR>
+xnoremap <silent> <Plug>MdnqueryVisualfirstmatch
+      \ :<C-u>call mdnquery#firstMatch(<SID>selected(), mdnquery#topics())<CR>
+
+function! s:selected() abort
+  let old_z = @z
+  silent normal! gv"zy
+  let query = s:removeWhitespace(@z)
+  let @z = old_z
+  return query
+endfunction
+
+function! s:removeWhitespace(str) abort
+  let str = substitute(a:str, '\n\|\r\|\s\+', ' ', 'g')
+  let trimmed = substitute(str, '^\s\+\|\s\+$', '', 'g')
+  return trimmed
+endfunction
