@@ -106,6 +106,19 @@ function! mdnquery#showList() abort
   call s:pane.ShowList()
 endfunction
 
+function! mdnquery#openEntry(num) abort
+  if a:num < 1
+    call s:errorMsg('Entry numbers start at 1')
+    return
+  endif
+  if a:num > len(s:pane.list)
+    call s:errorMsg('Entry number ' . a:num . ' does not exist')
+    return
+  endif
+  let index = a:num - 1
+  call s:pane.OpenEntry(index)
+endfunction
+
 function! mdnquery#openUnderCursor() abort
   if !s:pane.IsFocused()
     call s:errorMsg('Must be inside a MdnQuery buffer')
