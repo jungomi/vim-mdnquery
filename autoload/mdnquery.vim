@@ -203,6 +203,7 @@ function! s:pane.Create() abort
   endif
   let prevwin = winnr()
   execute 'silent ' . self.BufferOptions() . ' new ' . self.bufname
+  setfiletype markdown
   setlocal noswapfile
   setlocal buftype=nowrite
   setlocal bufhidden=hide
