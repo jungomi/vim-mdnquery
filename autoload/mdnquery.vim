@@ -99,12 +99,12 @@ function! mdnquery#list() abort
 endfunction
 
 function! mdnquery#entry(num) abort
-  if a:num < 1
-    call s:errorMsg('Entry numbers start at 1')
+  if empty(s:pane.list)
+    call s:errorMsg('No entries available')
     return
   endif
-  if a:num > len(s:pane.list)
-    call s:errorMsg('Entry number ' . a:num . ' does not exist')
+  if a:num < 1 || a:num > len(s:pane.list)
+    call s:errorMsg('Entry number must be between 1 and ' . len(s:pane.list))
     return
   endif
   let index = a:num - 1
