@@ -146,7 +146,10 @@ endfunction
 function! mdnquery#topics() abort
   " Vim has v:t_list, which does not exist in NeoVim
   let listType = 3
-  if type(g:mdnquery_topics) == listType && !empty(g:mdnquery_topics)
+  if exists('b:mdnquery_topics') && type(b:mdnquery_topics) == listType
+        \ && !empty(b:mdnquery_topics)
+    return b:mdnquery_topics
+  elseif type(g:mdnquery_topics) == listType && !empty(g:mdnquery_topics)
     return g:mdnquery_topics
   endif
   return ['js']
