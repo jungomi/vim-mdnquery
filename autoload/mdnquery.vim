@@ -161,16 +161,16 @@ let s:history = {
       \ 'entries': {}
       \ }
 
-function! s:history.HasEntry(title) abort
-  return has_key(self.entries, a:title)
+function! s:history.HasEntry(url) abort
+  return has_key(self.entries, a:url)
 endfunction
 
 function! s:history.HasList(query, topics) abort
   return !empty(self.GetList(a:query, a:topics))
 endfunction
 
-function! s:history.GetEntry(title) abort
-  return get(self.entries, a:title, {})
+function! s:history.GetEntry(url) abort
+  return get(self.entries, a:url, {})
 endfunction
 
 function! s:history.GetList(query, topics) abort
@@ -179,7 +179,7 @@ function! s:history.GetList(query, topics) abort
 endfunction
 
 function! s:history.SetEntry(entry) abort
-  let s:history.entries[a:entry.title] = a:entry.content
+  let s:history.entries[a:entry.url] = a:entry.content
 endfunction
 
 function! s:history.SetList(list, query, topics) abort
@@ -348,8 +348,8 @@ function! s:pane.OpenEntry(index) abort
   let entry = get(self.list, a:index, {})
   if exists('entry.content') && !empty(entry.content)
     call self.ShowEntry(a:index)
-  elseif s:history.HasEntry(entry.title)
-    let entry.content = s:history.GetEntry(entry.title)
+  elseif s:history.HasEntry(entry.url)
+    let entry.content = s:history.GetEntry(entry.url)
     call self.ShowEntry(a:index)
   else
     if s:hasJob()
