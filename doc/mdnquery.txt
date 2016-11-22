@@ -13,6 +13,7 @@ CONTENTS                                                   *mdnquery-contents*
     4.2. Normal mode mappings ..................... |mdnquery-mappings-normal|
     4.3. Visual mode mappings ..................... |mdnquery-mappings-visual|
   5. Settings ..................................... |mdnquery-settings|
+  6. Keywordprg (K command) ....................... |mdnquery-keywordprg|
 
 ==============================================================================
 1. Introduction                                        *mdnquery-introduction*
@@ -206,5 +207,34 @@ b:mdnquery_topics {list}
 g:mdnquery_vertical {bool} (Default: 0)
                         When set to 1, |mdnquery-buffer| is a vertical split,
                         otherwise it is a horizontal split.
+
+==============================================================================
+6. Keywordprg (K command)                                *mdnquery-keywordprg*
+
+The 'keywordprg' is used by the |K| command. By default it uses the "man"
+command on Unix and `:help` otherwise. The default behaviour is not very
+useful for many filetypes. This plugin automatically changes the 'keywordprg'
+for JavaScript files, which can be configured with the
+|g:mdnquery_javascript_man|.
+
+As Mozilla Developer Network also provides documentation for many web
+technologies, it might be desired to set the 'keywordprg' for other filetypes.
+This can easily be done with an |autocmd|.
+Example: >
+  autocmd FileType html setlocal keywordprg=:MdnQueryFirstMatch
+<
+In this case it does not make much sense to use the same topics for the
+search. The global setting |g:mdnquery_topics| could be set such that it works
+for all the needed filetypes, but that generally not a practical solution.
+Instead the buffer setting |b:mdnquery_topics| can be set, which conveniently
+can also be done with an |autocmd|.
+Example: >
+  autocmd FileType html let b:mdnquery_topics = ['css', 'html']
+  autocmd FileType html setlocal keywordprg=:MdnQuery
+<
+                                             *mdnquery-keywordprg-alternative*
+There exist alternatives with the same functionality for situation when
+'keywordprg' is not appropriate or desirable, see |MdnqueryWordsearch| and
+|MdnqueryVisualsearch| and their first match variants.
 
 vim:tw=78:ft=help:et:ts=2:sw=2:sts=2:norl
