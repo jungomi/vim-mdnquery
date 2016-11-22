@@ -34,8 +34,6 @@ command! -nargs=* -bar MdnQueryFirstMatch
       \ call mdnquery#firstMatch(<q-args>, mdnquery#topics())
 command! -nargs=0 -bar MdnQueryList call mdnquery#list()
 command! -nargs=0 -bar MdnQueryToggle call mdnquery#toggle()
-command! -nargs=0 -bar MdnQueryShow call mdnquery#show()
-command! -nargs=0 -bar MdnQueryHide call mdnquery#hide()
 
 nnoremap <silent> <Plug>MdnqueryEntry :call mdnquery#entry(v:count)<CR>
 nnoremap <silent> <Plug>MdnqueryWordsearch
