@@ -1,0 +1,210 @@
+*mdnquery.txt*    Query the Mozilla Developer Network documentation
+
+                                   MdnQuery
+
+==============================================================================
+CONTENTS                                                   *mdnquery-contents*
+
+  1. Introduction ................................. |mdnquery-introduction|
+  2. Commands ..................................... |mdnquery-commands|
+  3. Functions .................................... |mdnquery-functions|
+  4. Mappings ..................................... |mdnquery-mappings|
+    4.1. Buffer mappings .......................... |mdnquery-mappings-buffer|
+    4.2. Normal mode mappings ..................... |mdnquery-mappings-normal|
+    4.3. Visual mode mappings ..................... |mdnquery-mappings-visual|
+  5. Settings ..................................... |mdnquery-settings|
+
+==============================================================================
+1. Introduction                                        *mdnquery-introduction*
+
+Query the Mozilla Developer Network documentation without leaving Vim.
+A Markdown version of the documentation is loaded into a buffer. The network
+requests are done asynchronously if the |job-control| feature is available
+(both in NeoVim and Vim), otherwise it falls back to using |ruby|. The search
+results and documentation entries are cached to avoid unnecessary requests.
+
+==============================================================================
+2. Commands                                                *mdnquery-commands*
+
+                                                                   *:MdnQuery*
+:MdnQuery {query}       Searches for {query} and shows the list of results in
+                        the |mdnquery-buffer|. The search is limited to the
+                        configured topics (see |g:mdnquery_topics|).
+
+                                                         *:MdnQueryFirstMatch*
+:MdnQueryFirstMatch {query}
+                        Searches for {query} and loads the first result of the
+                        list into the |mdnquery-buffer|. The search is limited
+                        to the configured topics (see |g:mdnquery_topics|).
+
+                                                               *:MdnQueryList*
+:MdnQueryList           Shows the list of the current search results in the
+                        |mdnquery-buffer|.
+
+                                                             *:MdnQueryToggle*
+:MdnQueryToggle         Toggles the visibility of the  |mdnquery-buffer|. Use
+                        |mdnquery#show| and |mdnquery#hide| if you prefer to
+                        show or hide it unconditionally.
+
+==============================================================================
+3. Functions                                              *mdnquery-functions*
+
+                                                              *mdnquery#entry*
+mdnquery#entry({number})
+                        Opens the entry with the {number} of the current list
+                        and loads it into the |mdnquery-buffer|.  As long as
+                        there is a list and the entry {number} exists, it is
+                        loaded, regardless of whether the list is currently
+                        shown.
+
+                                                   *mdnquery#entryUnderCursor*
+mdnquery#entryUnderCursor()
+                        Opens the entry under the cursor. Only available in
+                        |mdnquery-buffer||.
+
+                                                         *mdnquery#firstMatch*
+mdnquery#firstMatch({string}, {list})
+                        Searches for {string} in the topics given by {list}
+                        and loads the first result of the list into the
+                        |mdnquery-buffer|.
+                                                              *mdnquery#focus*
+mdnquery#focus()        Sets focus to the |mdnquery-buffer|.
+
+                                                               *mdnquery#hide*
+mdnquery#hide()         Hides the |mdnquery-buffer|.
+
+                                                               *mdnquery#list*
+mdnquery#list()         Shows the list of the current search results in the
+                        |mdnquery-buffer|.
+
+                                                             *mdnquery#search*
+mdnquery#search({string}, {list})
+                        Searches for {string} in the topics given by {list}
+                        and shows the list of results in the |mdnquery-buffer|.
+
+
+                                                               *mdnquery#show*
+mdnquery#show()         Shows the |mdnquery-buffer|.
+
+                                                         *mdnquery#statusline*
+mdnquery#statusline()   Returns the message that is displayed in the
+                        statusline of the |mdnquery-buffer|. It describes
+                        what is currently being displayed.
+
+                                                             *mdnquery#toggle*
+mdnquery#toggle()       Toggles the visibility of the |mdnquery-buffer|.
+
+                                                             *mdnquery#topics*
+mdnquery#topics()       Returns the topics that are currently being used for
+                        any search command (see |g:mdnquery_topics|).
+
+==============================================================================
+4. Mappings                                                *mdnquery-mappings*
+
+------------------------------------------------------------------------------
+4.1. Buffer mappings                                *mdnquery-mappings-buffer*
+
+The following mappings are available in the |mdnquery-buffer|. If you would
+like to have custom mappings with the same effect, use the respective
+functions.
+
+                                                           *mdnquery-buffer-r*
+r                       Returns to the list of the current search results.
+                        The same effect can be achieved by calling
+                        |mdnquery#list|.
+
+                                                          *mdnquery-buffer-cr*
+                                                           *mdnquery-buffer-o*
+<CR>
+o                       Opens the entry under the cursor. It simply calls
+                        |mdnquery#entryUnderCursor|. This function is only
+                        available inside the |mdnquery-buffer|. To achieve
+                        a similar functionality from outside the buffer use
+                        |mdnquery#entry|.
+
+------------------------------------------------------------------------------
+4.2. Normal mode mappings                           *mdnquery-mappings-normal*
+
+                                                               *MdnqueryEntry*
+[count]<Plug>MdnqueryEntry
+                        Opens the entry with the number [count] of the current
+                        list. If no [count] is given, it opens the first one.
+                        Example: >
+                          :nmap <leader>e <Plug>MdnqueryEntry
+                          3<leader>e  " Opens the 3rd entry
+                          <leader>e   " Opens the 1st entry
+<
+                                                          *MdnqueryWordsearch*
+<Plug>MdnqueryWordsearch
+                        Searches for the word under the cursor.
+
+                                                      *MdnqueryWordfirstmatch*
+<Plug>MdnqueryWordfirstmatch
+                        Searches for the word under the cursor and opens the
+                        first entry.
+
+------------------------------------------------------------------------------
+4.3. Visual mode mappings                           *mdnquery-mappings-visual*
+
+                                                        *MdnqueryVisualsearch*
+<Plug>MdnqueryVisualsearch
+                        Searches for the selected text. Selections over
+                        multiple lines are joined by a space and excessive
+                        whitespace is removed from the entire selection.
+
+                                                    *MdnqueryVisualfirstmatch*
+<Plug>MdnqueryVisualfirstmatch
+                        Searches for the selected text and opens the first
+                        entry. Selections over multiple lines are joined by
+                        a space and excessive whitespace is removed from the
+                        entire selection.
+
+==============================================================================
+5. Settings                                                *mdnquery-settings*
+
+                                                       *g:mdnquery_auto_focus*
+g:mdnquery_auto_focus {bool} (Default: 0)
+                        When set to 1, all actions invoked automatically set
+                        the focus to the |mdnquery-buffer|.
+
+                                                   *g:mdnquery_javascript_man*
+g:mdnquery_javascript_man {string} (Default: "firstMatch")
+                        Defines the behaviour of the 'keywordprg' used by the
+                        |K| command for JavaScript files. When {string} is
+                        "search" it executes |:MdnQuery| and "firstMatch"
+                        executes |:MdnQueryFirstMatch|. If {string} is
+                        anything else, the 'keywordprg' is not set.
+
+                                                   *g:mdnquery_show_on_invoke*
+g:mdnquery_show_on_invoke {bool} (Default: 0)
+                        When set to 1, automatically shows the
+                        |mdnquery-buffer| whenever an action is invoked. This
+                        only makes a difference when the buffer is hidden.
+
+                                                             *g:mdnquery_size*
+g:mdnquery_size {number}
+                        Sets the size of the |mdnquery-buffer|. When
+                        |g:mdnquery_vertical| is 1, it corresponds to its
+                        width, otherwise to its height.
+
+                                                           *g:mdnquery_topics*
+g:mdnquery_topics {list} (Default: ["js"])
+                        Topics to search in. All commands use these topics
+                        unless |b:mdnquery_topics| is present or it is not
+                        a valid list, in which case it uses the default. Any
+                        topic that is listed on the Mozilla Developer Network
+                        search page can be used, specifically the one listed
+                        in the URL.
+
+                                                           *b:mdnquery_topics*
+b:mdnquery_topics {list}
+                        Same as |g:mdnquery_topics| but local to the current
+                        buffer. It has a higher priority than the global
+                        option.
+
+                                                         *g:mdnquery_vertical*
+g:mdnquery_vertical {bool} (Default: 0)
+                        When set to 1, |mdnquery-buffer| is a vertical split,
+                        otherwise it is a horizontal split.
+
+vim:tw=78:ft=help:et:ts=2:sw=2:sts=2:norl
