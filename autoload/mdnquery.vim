@@ -38,10 +38,11 @@ function! mdnquery#search(query, topics) abort
   let s:pane.topics = a:topics
   if s:history.HasList(a:query, a:topics)
     let s:pane.list = s:history.GetList(a:query, a:topics)
-    if s:async.firstMatch
+    if s:async.firstMatch && !empty(s:pane.list)
       call s:pane.OpenEntry(0)
     else
       call s:pane.ShowList()
+      let s:async.firstMatch = 0
     endif
     return
   endif
@@ -398,11 +399,12 @@ endfunction
 
 function! s:finishJobList(...) abort
   call s:history.SetList(s:pane.list, s:pane.query, s:pane.topics)
-  if s:async.firstMatch
+  if s:async.firstMatch && !empty(s:pane.list)
     call s:pane.OpenEntry(0)
   else
     call s:pane.ShowList()
     let s:async.active = 0
+    let s:async.firstMatch = 0
   endif
 endfunction
 
@@ -453,10 +455,11 @@ function! s:syncSearch(query, topics) abort
     end
 EOF
   call s:history.SetList(s:pane.list, s:pane.query, s:pane.topics)
-  if s:async.firstMatch
+  if s:async.firstMatch && !empty(s:pane.list)
     call s:pane.OpenEntry(0)
   else
     call s:pane.ShowList()
+    let s:async.firstMatch = 0
   endif
 endfunction
 
