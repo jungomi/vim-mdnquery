@@ -214,9 +214,9 @@ function! s:pane.Create() abort
   setlocal nomodifiable
   setlocal nospell
   setlocal statusline=%!mdnquery#statusline()
-  nnoremap <buffer> <silent> <CR> :call mdnquery#entryUnderCursor()<CR>
-  nnoremap <buffer> <silent> o :call mdnquery#entryUnderCursor()<CR>
-  nnoremap <buffer> <silent> r :call mdnquery#list()<CR>
+  nnoremap <buffer> <silent> <CR> :<C-u>call mdnquery#entryUnderCursor()<CR>
+  nnoremap <buffer> <silent> o :<C-u>call mdnquery#entryUnderCursor()<CR>
+  nnoremap <buffer> <silent> r :<C-u>call mdnquery#list()<CR>
   if g:mdnquery_auto_focus
     if mode() == 'i'
       silent stopinsert

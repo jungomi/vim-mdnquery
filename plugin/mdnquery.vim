@@ -37,9 +37,9 @@ command! -nargs=0 -bar MdnQueryToggle call mdnquery#toggle()
 
 nnoremap <silent> <Plug>MdnqueryEntry :<C-u>call mdnquery#entry(v:count1)<CR>
 nnoremap <silent> <Plug>MdnqueryWordsearch
-      \ :call mdnquery#search(expand('<cword>'), mdnquery#topics())<CR>
+      \ :<C-u>call mdnquery#search(expand('<cword>'), mdnquery#topics())<CR>
 nnoremap <silent> <Plug>MdnqueryWordfirstmatch
-      \ :call mdnquery#firstMatch(expand('<cword>'), mdnquery#topics())<CR>
+      \ :<C-u>call mdnquery#firstMatch(expand('<cword>'), mdnquery#topics())<CR>
 xnoremap <silent> <Plug>MdnqueryVisualsearch
       \ :<C-u>call mdnquery#search(<SID>selected(), mdnquery#topics())<CR>
 xnoremap <silent> <Plug>MdnqueryVisualfirstmatch
