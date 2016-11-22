@@ -60,11 +60,9 @@ function! s:removeWhitespace(str) abort
 endfunction
 
 function! s:setKeywordprg() abort
-  if !empty(g:mdnquery_javascript_man) && g:mdnquery_javascript_man != 'none'
-    if g:mdnquery_javascript_man == 'firstMatch'
-      setlocal keywordprg=:MdnQueryFirstMatch
-    else
-      setlocal keywordprg=:MdnQuery
-    endif
+  if g:mdnquery_javascript_man == 'firstMatch'
+    setlocal keywordprg=:MdnQueryFirstMatch
+  elseif g:mdnquery_javascript_man == 'search'
+    setlocal keywordprg=:MdnQuery
   endif
 endfunction
