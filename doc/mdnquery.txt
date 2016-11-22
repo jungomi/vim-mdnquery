@@ -6,14 +6,15 @@
 CONTENTS                                                   *mdnquery-contents*
 
   1. Introduction ................................. |mdnquery-introduction|
-  2. Commands ..................................... |mdnquery-commands|
-  3. Functions .................................... |mdnquery-functions|
-  4. Mappings ..................................... |mdnquery-mappings|
-    4.1. Buffer mappings .......................... |mdnquery-mappings-buffer|
-    4.2. Normal mode mappings ..................... |mdnquery-mappings-normal|
-    4.3. Visual mode mappings ..................... |mdnquery-mappings-visual|
-  5. Settings ..................................... |mdnquery-settings|
-  6. Keywordprg (K command) ....................... |mdnquery-keywordprg|
+  2. Usage ........................................ |mdnquery-usage|
+  3. Commands ..................................... |mdnquery-commands|
+  4. Functions .................................... |mdnquery-functions|
+  5. Mappings ..................................... |mdnquery-mappings|
+    5.1. Buffer mappings .......................... |mdnquery-mappings-buffer|
+    5.2. Normal mode mappings ..................... |mdnquery-mappings-normal|
+    5.3. Visual mode mappings ..................... |mdnquery-mappings-visual|
+  6. Settings ..................................... |mdnquery-settings|
+  7. Keywordprg (K command) ....................... |mdnquery-keywordprg|
 
 ==============================================================================
 1. Introduction                                        *mdnquery-introduction*
@@ -25,7 +26,54 @@ requests are done asynchronously if the |job-control| feature is available
 results and documentation entries are cached to avoid unnecessary requests.
 
 ==============================================================================
-2. Commands                                                *mdnquery-commands*
+2. Usage                                                      *mdnquery-usage*
+
+The basic usage is pretty straightforward. To search for a any query call the
+|:MdnQuery| command with the said query and it will open a |mdnquery-buffer|
+with a list of search results. If |job-control| is available, it might seem
+like nothing is happening at first, but when the search finished it will be
+shown.
+Example: >
+  MdnQuery array remove
+<
+Inside the buffer you can open the entry under the cursor by pressing <Enter>
+and press `r` to return to the list.
+Often the search query is specific enough to make the first result the desired
+documentation entry, and it might get annoying to manually open that every
+time. For this case the |:MdnQueryFirstMatch| command exists, which simply
+opens the first entry automatically.
+
+By default the searches are limited to JavaScript but can be changed with the
+setting |g:mdnquery_topics|. Additionally there are several configuration
+options how the buffer should be displayed (see |mdnquery-settings|).
+
+                                                       *mdnquery-usage-topics*
+The commands only search in the topics specified in |g:mdnquery_topics|. It is
+ignored if it is not a list.
+Example: >
+  let g:mdnquery_topics = ['js', 'css', 'html']
+  " Default
+  let g:mdnquery_topics = ['js']
+<
+Having a global list of topics for all searches might give results containing
+entries from an irrelevant topic. Instead of having to change the global
+option, there exist a setting that is local to the buffer |b:mdnquery_topics|.
+This can easily be combined with an |autocmd| to set the correct topics for
+a specific filetype.
+Example: >
+  autocmd FileType html let b:mdnquery_topics = ['css', 'html']
+<
+What if even that setting is too much of a hassle? Maybe you want to execute
+just one search for a specific topic without changing the current settings.
+This can be done by calling the function |mdnquery#search| or
+|mdnquery#firstMatch|.
+Example: >
+  call mdnquery#search('link', ['css', 'html'])
+  call mdnquery#firstMatch('flex align', ['css'])
+<
+
+==============================================================================
+3. Commands                                                *mdnquery-commands*
 
                                                                    *:MdnQuery*
 :MdnQuery {query}       Searches for {query} and shows the list of results in
@@ -48,7 +96,7 @@ results and documentation entries are cached to avoid unnecessary requests.
                         show or hide it unconditionally.
 
 ==============================================================================
-3. Functions                                              *mdnquery-functions*
+4. Functions                                              *mdnquery-functions*
 
                                                               *mdnquery#entry*
 mdnquery#entry({number})
@@ -100,10 +148,10 @@ mdnquery#topics()       Returns the topics that are currently being used for
                         any search command (see |g:mdnquery_topics|).
 
 ==============================================================================
-4. Mappings                                                *mdnquery-mappings*
+5. Mappings                                                *mdnquery-mappings*
 
 ------------------------------------------------------------------------------
-4.1. Buffer mappings                                *mdnquery-mappings-buffer*
+5.1. Buffer mappings                                *mdnquery-mappings-buffer*
 
 The following mappings are available in the |mdnquery-buffer|. If you would
 like to have custom mappings with the same effect, use the respective
@@ -114,9 +162,9 @@ r                       Returns to the list of the current search results.
                         The same effect can be achieved by calling
                         |mdnquery#list|.
 
-                                                          *mdnquery-buffer-cr*
+                                                       *mdnquery-buffer-enter*
                                                            *mdnquery-buffer-o*
-<CR>
+<Enter>
 o                       Opens the entry under the cursor. It simply calls
                         |mdnquery#entryUnderCursor|. This function is only
                         available inside the |mdnquery-buffer|. To achieve
@@ -124,7 +172,7 @@ o                       Opens the entry under the cursor. It simply calls
                         |mdnquery#entry|.
 
 ------------------------------------------------------------------------------
-4.2. Normal mode mappings                           *mdnquery-mappings-normal*
+5.2. Normal mode mappings                           *mdnquery-mappings-normal*
 
                                                                *MdnqueryEntry*
 [count]<Plug>MdnqueryEntry
@@ -145,7 +193,7 @@ o                       Opens the entry under the cursor. It simply calls
                         first entry.
 
 ------------------------------------------------------------------------------
-4.3. Visual mode mappings                           *mdnquery-mappings-visual*
+5.3. Visual mode mappings                           *mdnquery-mappings-visual*
 
                                                         *MdnqueryVisualsearch*
 <Plug>MdnqueryVisualsearch
@@ -161,7 +209,7 @@ o                       Opens the entry under the cursor. It simply calls
                         entire selection.
 
 ==============================================================================
-5. Settings                                                *mdnquery-settings*
+6. Settings                                                *mdnquery-settings*
 
                                                        *g:mdnquery_auto_focus*
 g:mdnquery_auto_focus {bool} (Default: 0)
@@ -209,7 +257,7 @@ g:mdnquery_vertical {bool} (Default: 0)
                         otherwise it is a horizontal split.
 
 ==============================================================================
-6. Keywordprg (K command)                                *mdnquery-keywordprg*
+7. Keywordprg (K command)                                *mdnquery-keywordprg*
 
 The 'keywordprg' is used by the |K| command. By default it uses the "man"
 command on Unix and `:help` otherwise. The default behaviour is not very
