@@ -25,13 +25,7 @@ endif
 
 augroup mdnquery_javascript
   autocmd!
-  if !empty(g:mdnquery_javascript_man) && g:mdnquery_javascript_man != 'none'
-    if g:mdnquery_javascript_man == 'firstMatch'
-      autocmd FileType javascript setlocal keywordprg=:MdnQueryFirstMatch
-    else
-      autocmd FileType javascript setlocal keywordprg=:MdnQuery
-    end
-  endif
+  autocmd FileType javascript call s:setKeywordprg()
 augroup END
 
 command! -nargs=* -bar MdnQuery
@@ -65,4 +59,14 @@ function! s:removeWhitespace(str) abort
   let str = substitute(a:str, '\n\|\r\|\s\+', ' ', 'g')
   let trimmed = substitute(str, '^\s\+\|\s\+$', '', 'g')
   return trimmed
+endfunction
+
+function! s:setKeywordprg() abort
+  if !empty(g:mdnquery_javascript_man) && g:mdnquery_javascript_man != 'none'
+    if g:mdnquery_javascript_man == 'firstMatch'
+      setlocal keywordprg=:MdnQueryFirstMatch
+    else
+      setlocal keywordprg=:MdnQuery
+    endif
+  endif
 endfunction
