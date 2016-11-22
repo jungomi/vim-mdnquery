@@ -59,7 +59,7 @@ Having a global list of topics for all searches might give results containing
 entries from an irrelevant topic. Instead of having to change the global
 option, there exist a setting that is local to the buffer |b:mdnquery_topics|.
 This can easily be combined with an |autocmd| to set the correct topics for
-a specific filetype.
+a specific file type.
 Example: >
   autocmd FileType html let b:mdnquery_topics = ['css', 'html']
 <
@@ -91,7 +91,7 @@ Example: >
                         |mdnquery-buffer|.
 
                                                              *:MdnQueryToggle*
-:MdnQueryToggle         Toggles the visibility of the  |mdnquery-buffer|. Use
+:MdnQueryToggle         Toggles the visibility of the |mdnquery-buffer|. Use
                         |mdnquery#show| and |mdnquery#hide| if you prefer to
                         show or hide it unconditionally.
 
@@ -101,7 +101,7 @@ Example: >
                                                               *mdnquery#entry*
 mdnquery#entry({number})
                         Opens the entry with the {number} of the current list
-                        and loads it into the |mdnquery-buffer|.  As long as
+                        and loads it into the |mdnquery-buffer|. As long as
                         there is a list and the entry {number} exists, it is
                         loaded, regardless of whether the list is currently
                         shown.
@@ -137,7 +137,7 @@ mdnquery#show()         Shows the |mdnquery-buffer|.
 
                                                          *mdnquery#statusline*
 mdnquery#statusline()   Returns the message that is displayed in the
-                        statusline of the |mdnquery-buffer|. It describes
+                        status line of the |mdnquery-buffer|. It describes
                         what is currently being displayed.
 
                                                              *mdnquery#toggle*
@@ -261,19 +261,19 @@ g:mdnquery_vertical {bool} (Default: 0)
 
 The 'keywordprg' is used by the |K| command. By default it uses the "man"
 command on Unix and `:help` otherwise. The default behaviour is not very
-useful for many filetypes. This plugin automatically changes the 'keywordprg'
+useful for many file types. This plugin automatically changes the 'keywordprg'
 for JavaScript files, which can be configured with the
 |g:mdnquery_javascript_man|.
 
 As Mozilla Developer Network also provides documentation for many web
-technologies, it might be desired to set the 'keywordprg' for other filetypes.
-This can easily be done with an |autocmd|.
+technologies, it might be desired to set the 'keywordprg' for other file
+types. This can easily be done with an |autocmd|.
 Example: >
   autocmd FileType html setlocal keywordprg=:MdnQueryFirstMatch
 <
 In this case it does not make much sense to use the same topics for the
 search. The global setting |g:mdnquery_topics| could be set such that it works
-for all the needed filetypes, but that generally not a practical solution.
+for all the needed file types, but that generally not a practical solution.
 Instead the buffer setting |b:mdnquery_topics| can be set, which conveniently
 can also be done with an |autocmd|.
 Example: >
