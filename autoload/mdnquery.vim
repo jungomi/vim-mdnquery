@@ -362,10 +362,9 @@ function! s:pane.OpenEntry(index) abort
 endfunction
 
 function! s:pane.BufferOptions() abort
-  let direction = &splitbelow ? 'botright' : 'topleft'
   let size = exists('g:mdnquery_size') ? ' ' . g:mdnquery_size . ' ' : ''
   let vertical = g:mdnquery_vertical ? ' vertical ' : ''
-  return direction . vertical . size
+  return 'botright' . vertical . size
 endfunction
 
 " Async jobs
