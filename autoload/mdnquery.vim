@@ -193,7 +193,7 @@ endfunction
 
 " Pane
 let s:pane = {
-      \ 'bufname': 'mdnquery_result_window',
+      \ 'bufname': 'mdnquery',
       \ 'list': [],
       \ 'query': '',
       \ 'topics': [],
@@ -207,7 +207,8 @@ function! s:pane.Create() abort
   endif
   let prevwin = winnr()
   execute 'silent ' . self.BufferOptions() . ' new ' . self.bufname
-  setfiletype markdown
+  setfiletype mdnquery
+  setlocal syntax=markdown
   setlocal noswapfile
   setlocal buftype=nowrite
   setlocal bufhidden=hide

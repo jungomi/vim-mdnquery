@@ -83,6 +83,20 @@ not automatically focused, you can change this behaviour by changing the
 provides some mappings to easily navigate through the search results, see
 |mdnquery-mappings-buffer|.
 
+                                                           *mdnquery-filetype*
+The file type of the |mdnquery-buffer| is set to "mdnquery" and uses the
+syntax of markdown. If you lazily load any plugins for markdown, you also need
+to add "mdnquery" to activate them. Having a custom file type allows you to
+easily modify the settings of the buffer. For instance you can add local
+mappings or set a specific option: >
+  " <Tab> switches back to the previously selected window
+  autocmd FileType mdnquery nnoremap <buffer> <Tab> <C-w>p
+  autocmd FileType mdnquery nnoremap <buffer> q :MdnQueryToggle<CR>
+
+  " Disable visual line wrapping
+  autocmd FileType mdnquery setlocal nowrap
+<
+
 ==============================================================================
 3. Commands                                                *mdnquery-commands*
 
@@ -166,7 +180,7 @@ mdnquery#topics()       Returns the topics that are currently being used for
 
 The following mappings are available in the |mdnquery-buffer|. If you would
 like to have custom mappings with the same effect, use the respective
-functions.
+functions or set mappings for the |mdnquery-filetype|.
 
                                                            *mdnquery-buffer-r*
 r                       Returns to the list of the current search results.
