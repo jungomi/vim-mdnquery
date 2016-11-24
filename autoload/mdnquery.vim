@@ -238,7 +238,7 @@ function! s:pane.Destroy() abort
 endfunction
 
 function! s:pane.Exists() abort
-  return bufexists(self.bufname)
+  return bufloaded(self.bufname)
 endfunction
 
 function! s:pane.IsVisible() abort
