@@ -29,11 +29,10 @@ results and documentation entries are cached to avoid unnecessary requests.
 ==============================================================================
 2. Usage                                                      *mdnquery-usage*
 
-The basic usage is pretty straightforward. To search for a any query call the
-|:MdnQuery| command with the said query and it will open a |mdnquery-buffer|
-with a list of search results. If |job-control| is available, it might seem
-like nothing is happening at first, but when the search finished it will be
-shown.
+The basic usage is straightforward. To search for a any query call the
+|:MdnQuery| command with said query and it will open a |mdnquery-buffer| with
+a list of search results. If |job-control| is available, it might seem like
+nothing is happening at first, but when the search finished it will be shown.
 Example: >
   MdnQuery array remove
 <
@@ -48,7 +47,7 @@ By default the searches are limited to JavaScript but can be changed with the
 setting |g:mdnquery_topics|. Additionally there are several configuration
 options how the buffer should be displayed (see |mdnquery-settings|).
 
-                                                       *mdnquery-usage-topics*
+                                                             *mdnquery-topics*
 The commands only search in the topics specified in |g:mdnquery_topics|. It is
 ignored if it is not a list.
 Example: >
@@ -72,6 +71,17 @@ Example: >
   call mdnquery#search('link', ['css', 'html'])
   call mdnquery#firstMatch('flex align', ['css'])
 <
+                                                             *mdnquery-buffer*
+The |mdnquery-buffer| is a unique buffer that displays all relevant
+informations of this plugin. It is opened with the *:botright* command and
+therefore appears at full width on the bottom of the screen, or when
+|g:mdnquery_vertical| is set, it appears at full height on the very right of
+the screen. The size of the buffer can be changed with the |g:mdnquery_size|
+setting. By default the buffer appears after a search is completed and it is
+not automatically focused, you can change this behaviour by changing the
+|g:mdnquery_show_on_invoke| and |g:mdnquery_auto_focus| settings. The buffer
+provides some mappings to easily navigate through the search results, see
+|mdnquery-mappings-buffer|.
 
 ==============================================================================
 3. Commands                                                *mdnquery-commands*
