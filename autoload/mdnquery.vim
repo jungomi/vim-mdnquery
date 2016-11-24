@@ -291,6 +291,7 @@ function! s:pane.ShowList() abort
   call insert(lines, self.Title())
   call self.SetContent(lines)
   let self.contentType = 'list'
+  silent doautocmd User MdnQueryContentChange
 endfunction
 
 function! s:pane.ShowEntry(id) abort
@@ -301,6 +302,7 @@ function! s:pane.ShowEntry(id) abort
   call self.SetContent(entry.content)
   let self.contentType = 'entry'
   let self.currentEntry = entry.title
+  silent doautocmd User MdnQueryContentChange
 endfunction
 
 function! s:pane.SetContent(lines) abort

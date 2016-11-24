@@ -14,7 +14,8 @@ CONTENTS                                                   *mdnquery-contents*
     5.2. Normal mode mappings ..................... |mdnquery-mappings-normal|
     5.3. Visual mode mappings ..................... |mdnquery-mappings-visual|
   6. Settings ..................................... |mdnquery-settings|
-  7. Keywordprg (K command) ....................... |mdnquery-keywordprg|
+  7. Autocommands ................................. |mdnquery-autocmds|
+  8. Keywordprg (K command) ....................... |mdnquery-keywordprg|
 
 ==============================================================================
 1. Introduction                                        *mdnquery-introduction*
@@ -257,7 +258,18 @@ g:mdnquery_vertical {bool} (Default: 0)
                         otherwise it is a horizontal split.
 
 ==============================================================================
-7. Keywordprg (K command)                                *mdnquery-keywordprg*
+7. Autocommands                                            *mdnquery-autocmds*
+
+                                                       *MdnQueryContentChange*
+The |MdnQueryContentChange| autocommand is triggered when the content of the
+|mdnquery-buffer| changes. This does not include any messages that signalise
+a running job.
+A simple example is to focus the buffer whenever it changes: >
+  autocmd User MdnQueryContentChange call mdnquery#focus()
+<
+
+==============================================================================
+8. Keywordprg (K command)                                *mdnquery-keywordprg*
 
 The 'keywordprg' is used by the |K| command. By default it uses the "man"
 command on Unix and `:help` otherwise. The default behaviour is not very
