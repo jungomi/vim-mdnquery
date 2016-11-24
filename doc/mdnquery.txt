@@ -225,7 +225,9 @@ o                       Opens the entry under the cursor. It simply calls
                                                        *g:mdnquery_auto_focus*
 g:mdnquery_auto_focus {bool} (Default: 0)
                         When set to 1, all actions invoked automatically set
-                        the focus to the |mdnquery-buffer|.
+                        the focus to the |mdnquery-buffer|. If you prefer to
+                        focus it only after a command finishes, you can use
+                        the autocommand |MdnQueryContentChange| instead.
 
                                                    *g:mdnquery_javascript_man*
 g:mdnquery_javascript_man {string} (Default: "firstMatch")
