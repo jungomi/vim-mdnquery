@@ -193,7 +193,7 @@ endfunction
 
 " Pane
 let s:pane = {
-      \ 'bufname': 'mdnquery',
+      \ 'bufname': 'mdnquery-buffer',
       \ 'list': [],
       \ 'query': '',
       \ 'topics': [],
