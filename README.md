@@ -6,6 +6,8 @@ available (both in NeoVim and Vim), otherwise it falls back to using Ruby.
 To avoid unnecessary requests, the search results and documentation entries are
 cached in the current Vim instance, which allows to switch quickly between them.
 
+![Demo][demo]
+
 ## Requirements
 
 - NeoVim or Vim with the job-control feature for asynchronous execution.
@@ -151,6 +153,7 @@ rvm use system
 gem install mdn_query
 ```
 
+[demo]: screenshots/demo.gif
 [mdn]: https://developer.mozilla.org/en-US/docs/Web/JavaScript
 [mdn_query]: https://github.com/jungomi/mdn_query
 [vim-plug]: https://github.com/junegunn/vim-plug
