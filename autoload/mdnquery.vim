@@ -373,7 +373,8 @@ endfunction
 " Async jobs
 let s:async = {
       \ 'active': 0,
-      \ 'firstMatch': 0
+      \ 'firstMatch': 0,
+      \ 'error': 0
       \ }
 
 function! s:jobStart(script, callbacks) abort
@@ -392,11 +393,16 @@ function! s:jobStart(script, callbacks) abort
 endfunction
 
 function! s:finishJobEntry(...) abort
-  call s:pane.ShowEntry(s:async.currentIndex)
-  let entry = s:pane.list[s:async.currentIndex]
+  if s:async.error
+    call s:pane.ShowList()
+  else
+    let entry = s:pane.list[s:async.currentIndex]
+    call s:pane.ShowEntry(s:async.currentIndex)
+    call s:history.SetEntry(entry)
+  endif
   unlet s:async.currentIndex
   let s:async.active = 0
-  call s:history.SetEntry(entry)
+  let s:async.error = 0
 endfunction
 
 function! s:finishJobList(...) abort
@@ -407,6 +413,7 @@ function! s:finishJobList(...) abort
     call s:pane.ShowList()
     let s:async.active = 0
     let s:async.firstMatch = 0
+    let s:async.error = 0
   endif
 endfunction
 
@@ -425,6 +432,7 @@ endfunction
 
 function! s:nvimHandleError(id, data, event) abort
   call s:msg(join(a:data))
+  let s:async.error = 1
 endfunction
 
 function! s:vimHandleSearch(channel, msg) abort
@@ -438,6 +446,7 @@ endfunction
 
 function! s:vimHandleError(channel, msg) abort
   call s:msg(a:msg)
+  let s:async.error = 1
 endfunction
 
 function! s:syncSearch(query, topics) abort
@@ -454,6 +463,8 @@ function! s:syncSearch(query, topics) abort
       end
     rescue MdnQuery::NoEntryFound
       VIM.evaluate("s:msg('No results for #{query}')")
+    rescue MdnQuery::HttpRequestFailed
+      VIM.evaluate("s:msg('Network error')")
     end
 EOF
   call s:history.SetList(s:pane.list, s:pane.query, s:pane.topics)
@@ -478,6 +489,8 @@ function! s:asyncSearch(query, topics) abort
         \ . "  puts entries;"
         \ . "rescue MdnQuery::NoEntryFound;"
         \ . "  STDERR.puts 'No results for " . a:query . "';"
+        \ . "rescue MdnQuery::HttpRequestFailed;"
+        \ . "  STDERR.puts 'Network error';"
         \ . "end"
   if has('nvim')
     let callbacks = {
@@ -510,7 +523,7 @@ function! s:syncOpenEntry(index) abort
     try
       let entry.content = s:DocumentFromUrl(entry.url)
     catch /MdnQuery:/
-      call s:msg(v:errmsg)
+      echomsg v:errmsg
       return
     endtry
   endif
