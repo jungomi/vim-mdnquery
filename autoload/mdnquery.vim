@@ -589,5 +589,6 @@ EOF
 endfunction
 
 function! s:escapeDict(dict) abort
-    return substitute(a:dict, '\(\w\)''\(\w\)', '\1''''\2', 'g')
+  " Escape single quotes inside dictionary values
+  return substitute(a:dict, '\([^ :,]\)''\([^ :,]\)', '\1''''\2', 'g')
 endfunction
